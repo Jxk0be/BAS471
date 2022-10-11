@@ -1,0 +1,893 @@
+---
+title: "BAS 471 Fall 2022 Homework on Unit 2A - Monte Carlo Simulation"
+author: "Jake Shoffner"
+date: "see Canvas for due date"
+output:
+  word_document: default
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+#Leave this as-is.
+knitr::opts_chunk$set(echo = TRUE,collapse=TRUE)
+if( as.numeric( paste( unlist( strsplit( paste(R.Version()$major,R.Version()$minor,sep="."),split="\\.") ),collapse="") ) < 421 ) { 
+  stop("You must have R version 4.2.1 or later to knit this document")}
+RNGversion("4.2.1")
+```
+
+------------------------------------------------------------------------
+
+# Note: these are your homework problems
+
+Reminder about collaboration policy. You can develop a common set of R
+code with you and your friends. However, anything that is written
+interpretation, i.e., anything that follows a **Response:** needs to be
+written up in your own words. Homeworks that look to be near copy/pastes
+of each other will receive substantially reduced credit.
+
+------------------------------------------------------------------------
+
+# Instructions
+
+Complete Questions 1 (38 pts), Question 2 (8 pts, plus an extra credit
+question), Question 3 (6 pts, plus an extra credit question), Question 4
+(10 pts), and Question 5 (28 pts).
+
+Complete one other questions (Question 6-9); 10 points each. Completing
+more than one of these will earn you extra credit
+
+Questions 10 and 11 are purely extra credit; 10 points each.
+
+------------------------------------------------------------------------
+
+## Question 1: Demand for headphones (required)
+
+Each day, the demand for headphones is random, but always between 7 and
+14. Historical patterns show the following probabilities for each
+demand: 7 (9%), 8 (12%), 9 (22%), 10 (23%), 11 (13%), 12 (9%), 13 (7%),
+and 14 (5%).
+
+Consider the total demand that comes in over 60 days. Initialize an
+empty vector named `headphones`, then run a Monte Carlo simulation
+(100,000 trials) and store into the `trial`-th element of `headphones`
+the total demand over 60 days generated during the `trial`-th trial.
+Then, use `mean` along with the appropriate logical conditions on
+`headphones` to estimate the following probabilities.
+
+a)  Include a `summary` and `hist` of your vector `headphones`. Sanity:
+    the output from `summary` should show a median and mean value close
+    to 600 and a 1st/3rd quartile nearish to 590 and 610.
+
+b)  Estimate the probability that the total demand is at least 610
+    Sanity: about 29%.
+
+c)  Estimate the probability that the total demand is between 560 and
+    580 (including those two values). Sanity: close to 12%.
+
+d)  Estimate the probability that the total demand is exactly 596
+    Sanity: close to 2.2%.
+
+e)  The probability that the total demand after 60 days is a multiple of
+    20 (a good pallet size to order these products). You'll want to use
+    the `seq` command. Start at 420 (the smallest possible total
+    demand), end at 840 (the largest possible total demand), and go up
+    by 20 Use the `%in%` shortcut. Sanity: about 5%.
+
+```{r Q1 parts a to e}
+# This section is just the monte carlo simulation
+nTrials <- 100000
+headphones <- c()
+for (i in 1:nTrials) {
+  totalDemand = sum(sample(7:14, 60, TRUE, c(0.09, 0.12, 0.22, 0.23, 0.13, 0.09, 0.07, 0.05)))
+  headphones[i] = totalDemand;
+}
+
+# part a:
+summary(headphones)
+hist(headphones)
+
+# part b:
+print(mean(headphones >= 610))
+
+# part c:
+print(mean(560 <= headphones & headphones <= 580))
+
+# part d:
+print(mean(headphones == 596))
+
+# part e:
+print(mean(headphones %% 20 == 0))
+```
+
+f)  Now imagine that each day, the demand for a different type of
+    headphones comes in from *at least one* of three sources:
+
+-   Reliable source: every day the demand is either 4, 5, 6, 7, 8, 9, or
+    10 (4 is twice as likely as a 10, and the probability ramps down
+    linearly from 4 to 10).
+
+-   Infrequent source: 0 with probability 0.55, 15 with probability 0.3,
+    20 with probability 0.15
+
+-   Rare source: 0 with probability 0.9, 16 with probability 0.02, 25
+    with probability 0.07, 40 with probability 0.01
+
+Initialize an empty vector named `total.demand`, then run a Monte Carlo
+simulation (100,000 trials) and store into the `trial`-th element of
+`total.demand` the total demand over 60 days generated during the
+`trial`-th trial. Two things for you to do:
+
+f1) Include a `summary` and `hist` of your vector `total.demand`. Sanity
+check: if you look at the output of `summary` you should find that the
+Median and Mean is pretty close to 990, while the 1st and 3rd quartiles
+are near 930 and 1050, respectively.
+
+f2) The supply chain analytics team has set the policy that only 1150
+headphones will be manufactured and made available for purchase each 60
+days. Estimate the probability of a stockout, i.e., that the demand
+*exceeds* 1150 Sanity check: close to 4%.
+
+```{r Q1f}
+nTrials <- 100000
+total.demand <- c()
+
+for (i in 1:nTrials) {
+  reliable = sample(4:10, 60, TRUE, seq(from = 2, to = 1, length=length(4:10)))
+  infrequent = sample(c(0, 15, 20), 60, TRUE, c(0.55, 0.3, 0.15))
+  rare = sample(c(0, 16, 25, 40), 60, TRUE, c(0.9, 0.02, 0.07, 0.01))
+  total.demand[i] = sum(reliable, infrequent, rare);
+}
+
+# f1
+summary(total.demand)
+hist(total.demand)
+
+# f2
+print(mean(total.demand > 1150))
+```
+
+------------------------------------------------------------------------
+
+## Question 2: World Series (required)
+
+The World Series is the annual championship series of Major League
+Baseball (MLB) in the United States and Canada, contested since 1903
+between the champion teams of the American League (AL) and the National
+League (NL). The winner of the World Series championship is determined
+through a best-of-seven playoff, and the winning team is awarded the
+Commissioner's Trophy.
+
+Does the better of the two teams in the World Series always win? Not
+always. Consider the following setup:
+
+-   Teams A and B are playing each other in the world series
+-   Team A has a 70% chance of winning a game while Team B has a 30%
+    chance
+
+Let's represent the outcome of any particular game as a 1 (A wins) or a
+0 (B wins). Then,
+`sample( c(1,0), size=7, replace=TRUE, prob=c(0.6,0.4))` provides the
+outcomes of 7 games. Team A (the better team) wins if the sum of these 7
+selected 0s and 1s is at least 4.
+
+a)  With a Monte Carlo simulation that goes through the results of
+    10,000 World Series, estimate the probability that Team A (the
+    better team) actually wins. Sanity: close to 88%.
+
+```{r Q2a}
+nTrials <- 10000
+w_series <- c()
+
+for (i in 1:nTrials) {
+  w_series[i] = sum(sample(c(1, 0), 7, TRUE, prob=c(0.7, 0.3)))
+}
+
+# a:
+print(mean(w_series >= 4))
+```
+
+b)  **Bonus:** Let `p.A <- seq(.01,.99,.01)` (i.e. the sequence 0.01,
+    0.02, 0.03, ..., 0.98, 0.99). These will represent that probability
+    that team A wins a game. Define `p.win <- rep(0,99)` (a vector of 99
+    0s), then use a `for` loop to define the `i`-th element of `p.win`
+    as the probability that team A wins the World Series when the
+    probability of winning an individual game is the `i`-th element of
+    `p.A`.
+
+Once each element of `p.win` has been defined, show the result of
+running
+`plot(p.win ~ p.A,xlab="Probability Team A Wins a Game",ylab="Probability Team A Wins World Series")`
+to explore the chance that team A wins the World Series with the
+probability it wins a game. After the plot command, also run
+`abline(h=0.5)` to add a horizontal line at 0.5.
+
+Note: your code may take a while (couple minutes) to complete depending
+on the speed of your computer.
+
+```{r Q2b bonus}
+p.win = rep(0, 99)
+p.A = seq(.01, .99, .01)
+
+for (i in 1:99) {
+  p.win[i] = sample(c(1, 0), 7, TRUE, c(p.A[i], 1 - p.A[i]))
+}
+
+plot(p.win ~ p.A, xlab="Probability Team A Wins a Game", ylab="Probability Team A Wins World Series")
+abline(h=0.5)
+```
+
+c)  **Bonus** You are asked to redesign the World Series (the number of
+    games played) so that the better team almost always wins.
+    Specifically, you are told that when the better team has a 55%
+    chance of winning any particular game, they should have at least a
+    95% chance of winning the World Series. What's the minimum number of
+    games (make sure it's an odd number) the World Series must be for
+    this to occur? I suggest adapting your code from (a) and changing
+    the win probability and number of games, then do trial-and-error
+    until you find the correct number of games played. In the response,
+    discuss your strategy for finding the answer, as well as what your
+    final answer turns out to be.
+
+**Response:** 13 games is the minimum number of games for this to occur.
+If we did 11 games, it would not be AT LEAST 95%, as well as 12 games
+isn't odd, so that wouldn't work.
+
+Strategy: subtracted one, saw probability go down, then added 5, then
+added 1, that got me where I needed to be. 13 games gives around a 98%
+chance of winning the World Series w/ the given probabilities of winning
+a game.
+
+```{r Q2c}
+nTrials <- 10000
+w_series <- c()
+
+for (i in 1:nTrials) {
+  w_series[i] = sum(sample(c(1, 0), 13, TRUE, prob=c(0.55, 0.45)))
+}
+
+# c:
+print(mean(w_series >= 4))
+```
+
+------------------------------------------------------------------------
+
+## Question 3: probability of a first down and touchdown (required)
+
+A team starts with the football on the 20 yard line. Rushing is
+attempted every play, and the yardage gained/lost each is picked
+randomly and independently accordingly to historical plays. Although
+this isn't too realistic of a model for how actual football plays work
+(sequential plays aren't independent), it's a reasonable starting point.
+Let us assume the amount gained (or lost) has the following values and
+weights.
+
+```{r yardages}
+yards <- -9:15
+weights.yards <- c(1,1,1,2,2,2,3,5,8,12,14,18,19,13,9,7,6,4,3,3,2,2,1,1,1)
+barplot(weights.yards,names.arg=yards)
+```
+
+a.  If 4 yardages are randomly picked with the given weights, what is
+    the probability that a "first down" will be made (i.e. the ball, at
+    some point during the four plays, moves at least 10 yards beyond
+    where it started)? Sanity: about 60%.
+
+Hint: it's not as simple as checking `sum()` on the four selected
+yardages since there are negative yards. For example, imagine the four
+values picked were 4, 6, 0, -3? A first down was made (with the first
+two yardages), but the `sum` of all four values is 7. Try playing around
+with the `cumsum` command, which gives the cumulative sum of the
+elements of a vector. For example, `cumsum( c(4,6,0,-3) )` would yield
+the vector 4, 10, 10, -7 (The i-th element of `cumsum()` is the sum of
+the first i elements of the vector ).
+
+```{r Q3a}
+nTrials = 100000
+counter = 0;
+for (i in 1:nTrials) {
+  plays = cumsum(sample(yards, 4, TRUE, weights.yards))
+  if (plays[1] >= 10 || plays[2] >= 10 || plays[3] >= 10 || plays[4] >= 10) counter = counter + 1
+}
+print(counter / nTrials)
+```
+
+b.  **Extra Credit** Imagine the team starts at the 30 yard line. If
+    yardages are picked randomly, what's the probability that a
+    touchdown will be made? Note: this question requires some expertise
+    as to how football works, but the gist is if the team doesn't gain
+    at least 10 yards during the (up to) 4 downs, the team forfeits the
+    ball.
+
+**Note:** This is a *hard* problem designed for people who are either
+very passionate about sports analytics or who are already extremely
+confident in their programming ability (or both!). However, this is the
+complexity that is reasonable to expect during an in-depth interview for
+a sports analytics position. The logic here is difficult, but if you are
+up for a challenge, it's quite satisfying to get the answer! I was
+finding only around 6%.
+
+One idea:
+
+-   create a variable named `at.yard` that keeps track of where the ball
+    is at the start at each set of four downs (initially, this will be
+
+    30) 
+
+-   use a `for` loop with looping variable named `set` and looping
+    vector `1:7` (since at most, it will take 7 sets of four downs for
+    either the ball to be forfeited or a touchdown to be scored)
+
+-   at each iteration in the loop:
+
+    -   generate the downs gained/lost from each of the four plays
+        (store that in a vector named `gains`), and their cumulative sum
+        (store that in a vector named `advanced`)
+    -   if all the values in `advanced` are less than 10
+        (`all(advanced<10)` is `TRUE`), then check to see if any plays
+        pushed the ball to the 100 yard line, (i.e.
+        `any(at.yard + advanced >= 100)` is `TRUE`). If so, bump up the
+        value of your counter by one, then use the `break` command to
+        get out of the `for` loop going over the sets of downs
+    -   if a first down is made, figure out how many yards are gained
+        (the first element of `advanced` that is at least 10); update
+        the value of `at.yard` accordingly
+    -   before an iteration of the `for` loop ends, check to see if a
+        touchdown was scored, i.e. `at.yard>=100`. If so, bump up the
+        value of your counter by one, then use the `break` command to
+        get out of the `for` loop going over the sets of downs .\
+
+    ```{r Q3b Extra Credit}
+
+    ```
+
+------------------------------------------------------------------------
+
+## Question 4: Will reality be captured in the data? (required)
+
+In analytics, we often collect data to determine which of two events
+have a higher probability of occurring. For example, does ad A or ad B
+have a higher probability of being clicked? Is brand A more likely to be
+purchased than brand B? Does inventory control policy A have a lower
+stockout probability than policy B? Depending on the amount of data
+collected, *most* of the time we are able to detect which event has a
+higher probability. Other times (hopefully infrequently), the data can
+lead us to the wrong conclusion.
+
+Consider studying the demand patterns of customers of two types: A and B
+(maybe A commute to work by car, B commute to work by bus). It is
+desired to find the probability of the event "a customer places at least
+4 orders in a year". Imagine that, in reality, the number of orders
+placed in a year is:
+
+Demand 1 2 3 4 5 6 Probability (A) 0.35 0.17 0.15 0.11 0.12 0.10
+Probability (B) 0.24 0.40 0.08 0.13 0.06 0.09
+
+It's clear that the probability of the event "at least 4 is orders" is
+higher for A (11+12+10=33%) than for B (13+6+9=28%), but the data may
+not always bear that out that due to chance variation in the data
+collection process.
+
+Data is to be collected by sampling 12 customers from A and 22 customers
+from B and calculating the proportions of customers who placed at least
+4 orders.
+
+Via a Monte Carlo simulation with 50000 trials, estimate the probability
+that proportion of customers in sample A who place 4 or more orders will
+indeed be larger than the proportion of customers in sample B who place
+4 or more orders (in other words, the data correctly indicates the
+probability of 4+ orders is higher for A than for B). Sanity: only about
+62% (quite hard to detect that A is higher with small sample sizes)!
+
+```{r Q4}
+nTrials = 50
+count = 0;
+
+for (i in 1:nTrials) {
+  counterA = 0
+  counterB = 0
+  for (i in 1:12) {
+    sA = sample(1:6, 1, TRUE, c(0.35, 0.17, 0.15, 0.11, 0.12, 0.10))
+    if (sA >= 4) counterA = counterA + 1
+  }
+  
+  for (i in 1:22) {
+    sB = sample(1:6, 1, TRUE, c(0.24, 0.40, 0.08, 0.13, 0.06, 0.09))
+    if (sB >= 4) counterB = counterB + 1
+  }
+  if (counterA / 12 > counterB / 22) count = count + 1;
+}
+
+print(count / nTrials)
+```
+
+------------------------------------------------------------------------
+
+## Question 5: How much treasure can you get home? (required)
+
+While wandering deep in the Smoky Mountains, you come across a big
+treasure chest filled with coins! Unfortunately it's *way* more than you
+can carry, but you do have a backpack. You fill it with:
+
+-   434 1-dollar coins
+-   874 50-cent coins
+-   557 25-cent coins
+-   347 10-cent coins
+-   229 5-cent coins
+-   310 1-cent coins
+
+That's about 34 lbs of coins (2751 coins in all; \$1059.50 or 105950
+cents total)! However, the backpack has a hole. Every step you take, a
+random number of coins falls out
+
+-   87% chance that no coins fall out
+-   7% chance that one coin falls out
+-   4% chance that two coins fall out
+-   2% chance that three coins all out
+
+The hike back to your car is 10,000 steps (about 5 miles). We'd like to
+estimate the probability that you make it back to the car with at least
+\$275 (or 27500 cents) in the backpack.
+
+Hint: the `rep` command is useful here for generating the vector of
+values from which `sample` pulls. For example, `rep(50,874)` gives a
+vector of 874 50s. You can concatenate a bunch of `rep`s to make a
+vector of all the coins in the backpack to use as your first argument in
+`sample`.
+
+a)  Explain why the `sample` command (after putting the correct value of
+    the `size=` argument) for determining which coins fall out of the
+    bag *isn't*:
+
+`sample( c(100,50,25,10,5,1), size=..., replace=TRUE, prob=c(434,874,557,347,229,310)`
+
+**Response:** Basically replace should be FALSE because once a coin
+falls out, it isn't being replaced, there fore the prob vector would
+also be off.
+
+b)  Write a Monte Carlo simulation with 10,000 trials to estimate the
+    probability that you make it back to the car with at least \$275 (or
+    27500 cents) in coins still in the backpack. Sanity: near 16%.
+
+Hint: in each trial:
+
+-   generate the number of coins that fall out each step (e.g. 0 0 1 0 2
+    2 0 0 3 1 2 0 ... ); call this vector `fallen`
+
+-   sum those to find the total number of coins that fall out; call this
+    quantity `total.lost`
+
+-   sample that many coins (`total.lost`) without replacement from the
+    vector containing all the coins in the backpack and sum up their
+    values. This gives you the total that fell out, and you can use that
+    to find the amount that remains in the pack.
+
+This problem is somewhat analogous to the household spending problem
+done in class where we had to generate the number of people in the
+household, the number of items each purchased, and the monetary amount
+of each purchase.
+
+```{r Q5b}
+nTrials = 10000
+data = c()
+dollar = rep(100, 434)
+fiftyCent = rep(50, 874)
+tFiveCent = rep(25, 557)
+tenCent = rep(10, 347)
+fiveCent = rep(5, 229)
+oneCent = rep(1, 310)
+
+for (i in 1:nTrials) {
+  fallen = sample(0:3, 10000, TRUE, c(0.87, 0.07, 0.04, 0.02))
+  total.lost = sum(fallen)
+  data[i] = sum(sample(c(dollar, fiftyCent, tFiveCent, tenCent, fiveCent, oneCent), 2751 - total.lost, FALSE))
+}
+
+print(mean(data  >= 27500))
+```
+
+c)  Inspired by your discovery, you and four friends venture deep into
+    the mountains again in search of another chest. You find one!
+    However, this chest contains 42 gems - maybe diamonds, emeralds,
+    rubies, and sapphires! Since 42 doesn't divide evenly among 5
+    people, the group decides that each gem will be given away at random
+    (a random name is picked for the winner of each). Although some
+    people will ultimately end up with more than others (perhaps a lot
+    more), everyone should end up with "about eight", so everyone agrees
+    this feels fair.
+
+c1) What is the probability that *you* end up with 4 or fewer coins?
+Sanity: near 5 or 6%. Hint: to determine the winners of each gem, sample
+42 numbers (1, 2, 3, 4, or 5) with replacement, and let yourself be
+represented by the number 1. In each trial, you could count up the
+number of 1s that get picked...
+
+```{r Q5c1}
+nTrials = 10000
+data = c()
+
+for (i in 1:nTrials) {
+  person = sample(1:5, 42, TRUE)
+  nGems = table(person)[[1]]
+  data[i] = nGems
+}
+
+print(mean(data <= 4))
+```
+
+c2) What is the probability that *someone* ends up with 4 or fewer
+coins? Sanity: around 28%. Hint: consider running `table` on the vector
+of winners. Someone ends up with 4 or fewer coins if the smallest
+frequency emerging from `table` if 4 or smaller!
+
+```{r Q5c2}
+nTrials = 10000
+data = c()
+
+for (i in 1:nTrials) {
+  person = sample(1:5, 42, TRUE)
+  data[i] = min(table(person))
+}
+
+print(mean(data <= 4))
+```
+
+c3) What is the probability that the person who ends up with the most
+coins has at least 9 more coins than the person that ends up with the
+fewest coins? For example, the person with the fewest coins might only
+have 5, while the person with the most coins may have 16; in this case
+the difference in number of coins is indeed at least 9!. Sanity: close
+to 22% or 23%. Hint: consider the largest and the smallest frequencies
+that emerge from running `table` on the vector of winners.
+
+```{r Q5c3}
+nTrials = 10000
+counter = 0;
+
+for (i in 1:nTrials) {
+  person = sample(1:5, 42, TRUE)
+  if (max(table(person)) - min(table(person)) >= 9) counter = counter + 1
+}
+
+print(counter / nTrials)
+```
+
+c4) What is the probability that *you* end up with the most coins (there
+may be a tie for most coins, but at long as you're involved in that tie,
+you can consider yourself having "the most")? Sanity: about 24%
+
+```{r Q5c4}
+nTrials = 10000
+counter = 0;
+
+for (i in 1:nTrials) {
+  person = sample(1:5, 42, TRUE)
+  if (table(person)[[1]] == max(table(person))) counter = counter + 1
+}
+
+print(counter / nTrials)
+```
+
+e)  Since each coin is being given away at random among 5 people,
+    someone might reason that the probability that you (or any other
+    person for that matter) ends up with the most coins is 1/5, or 20%.
+    Explain the flaw in that logic, and why this probability should be
+    larger than 20% in this scenario.
+
+**Response:** Since the total gems can't be divided up evenly among the
+5, then technically there isn't an equal chance of getting the most
+gems.
+
+------------------------------------------------------------------------
+
+## Question 6: Cornucopia of colors (answer one of Q6-Q9)
+
+A store advertises a 'grab bag' special where 28 white shirts are picked
+from inventory. After selection, the shirts are dyed various colors and
+have the following probabilities of being placed in the grab bag.
+
+-   Grey with probability 0.28
+-   Black with probability 0.23
+-   Blue with probability 0.09
+-   Red with probability 0.07
+-   Green with probability 0.16
+-   Orange with probability 0.17
+
+Use a Monte Carlo simulation with 10,000 trials to estimate the
+following.
+
+a)  What's the probability that your grab bag will be missing at least 1
+    color (about 20%)? Hint: once you generate the colors in your grab
+    bag, count up the number of unique colors via some combination of
+    the `unique` and `length` commands.
+
+```{r Q6a }
+
+```
+
+b)  What's the probability that your grab bag will have at least two of
+    each color (about 37%)? Hint: you'll need to check if *all* six
+    colors are in the bag *and* at least two exist of each color (try
+    the `min` and `table` commands to count up the number of each
+    color).
+
+```{r Q6b }
+
+```
+
+c)  What's the probability that your grab bag will have at least three
+    of each color (about 7 or 8%)? Follow the same hints as (b).
+
+```{r Q6c }
+
+```
+
+------------------------------------------------------------------------
+
+## Question 7: Where is the nearest Starbucks? (answer one of Q6-Q9)
+
+Five Starbucks are located on a long street. Let's represent their
+positions as five integers on the number line: 20 31 35 72 88
+
+Imagine you pick a random position on the street, i.e. pick a random
+integer 1-99 (inclusive). The probability of picking a 1 is 1.5 more
+likely than picking a 99, with the the probability ramping down linearly
+for larger numbers.
+
+What is the probability of picking a position that's a distance of *at
+most 12* from the nearest Starbucks (about 79% or 80%)? For example, if
+you picked 50 in this example, the nearest Starbucks would be a distance
+of 15 away (and our event of interest didn't happen). Hint: the `abs`
+command will find the absolute value of numbers in a vector. Combined
+with the `min` command, you can construct the logical condition that
+should appear in your `if` statement.
+
+```{r Q7 }
+nTrials = 10000
+pos = c(20, 31, 35, 72, 88)
+counter = 0
+
+for (i in 1:nTrials) {
+  rng = sample(1:99, 1, FALSE, seq(from=1.5, to = 1, length=length(1:99)))
+  dist = min(abs(rng - pos))
+  if (dist <= 12) counter = counter + 1
+}
+
+print(counter / nTrials)
+```
+
+------------------------------------------------------------------------
+
+## Question 8: Word of mouth advertising (answer one of Q6-Q9)
+
+The advertising analytics team is going to model spread by 'word of
+mouth' as follows:
+
+-   Initially, 7 people are told about the product.
+
+-   Phase 1 - *Each* of these people tell an additional number of
+    people.
+
+-   
+
+         The number of these additional people that each initial person tells is random:
+
+-   
+
+         0 with probability 0.6 and 1-5 with probability 0.08 
+
+-   Phase 2 - Each of THOSE people tell an additional number of people
+    (the number being random with those same probabilities).
+
+-   Phase 3 - Then, each of THOSE people tell an additional number of
+    people (the number being random with those same probabilities).
+
+After Phase 3 has completed, the total number of people who have heard
+of the product is tabulated. This total is the number of initial people
+told *plus* the number of additional people told in each phase.
+
+For example:
+
+-   Initially 7 people are told.
+-   Phase 1: perhaps only 1 of the people initially told spreads the
+    word, and that one person spreads it to 5 people.
+-   Phase 2: of those 5 people, perhaps only 2 spread the word,
+    spreading it to 1 more, and 3 more, respectively
+-   Phase 3: of those 4 total people, perhaps only 1 spreads the word,
+    spreading it to 2 more
+-   In the end, 7 + 5 + 4 + 2 = 18 total people have heard of the
+    product.
+
+a)  Provide a histogram of the total number of people that have heard
+    about the product. Sanity check: the result of `summary` should show
+    the median and mean around 35-38 or so while the 1st/3rd quartiles
+    should be near 22 and 50 or so, respectively.
+
+b)  Estimate the probability that the total number of people who have
+    heard of the product is 25 or more. Sanity: about 70%.
+
+```{r Q8}
+
+```
+
+------------------------------------------------------------------------
+
+## Question 9: Planning the number of wait staff (answer one of Q6-Q9)
+
+A large restaurant manager needs to figure out how many waiters should
+be working on Friday nights in order for service to proceed smoothly.
+
+-   Parties of 1, 2, 3, 4, 6, or 8 come into the restaurant (assume
+    these are the only party sizes) with probabilities 5%, 20%, 15%,
+    40%, 15%, and 5%, respectively.
+
+-   On any given Friday, anywhere between 15 and 35 parties come in (21
+    possible values). The probability of 15 parties is 2.6 times higher
+    than the probability of 35 parties, with the probability ramping
+    down linearly (15 parties being most likely, 35 parties being least
+    likely).
+
+a)  Imagine a waiter can only handle 16 people before service starts to
+    suffer. Currently, four waiters are scheduled for Friday nights.
+    Estimate the probability that the service will suffer (i.e., there
+    are more people than 16 times the number of waiters). Use 50,000
+    trials. Sanity: near 83%
+
+Hint: in each trial, generate the number of parties that enter the
+restaurant. Then, generate that many party sizes and sum them to find
+the total number of people in the restaurant.
+
+Note: This problem is somewhat analogous to the household spending
+problem done in class where we had to generate the number of people in
+the household, the number of items each purchased, and the monetary
+amount of each purchase.
+
+```{r Q9a}
+nTrials = 50000
+counterA = 0
+counterB = 0
+
+for (i in 1:nTrials) {
+  pSize = sample(c(1, 2, 3, 4, 6, 8), 1, FALSE, c(0.05, 0.20, 0.15, 0.4, 0.15, 0.05))
+  parties = sample(15:35, pSize, TRUE, seq(from =2.6, to=1, length=length(15:35)))
+  total.people = sum(parties)
+  if (total.people > (4 * 16)) counterA = counterA + 1
+  if (total.people > (3 * 16)) counterB = counterB + 1
+}
+
+# This is the "real" answer, sanity check I believe is wrong
+print(counterA / nTrials)
+
+# To match the sanity check, the waiters is 3 instead of 4
+print(counterB / nTrials)
+```
+
+b)  The manager find probability that service starts to suffer way too
+    high at 85%. Rather, the manager wants there to be at most 10%
+    chance the service goes smoothly. How many waiters do you recommend?
+    Explain your reasoning. Hint: you don't need to rerun the simulation
+    in (a), just find the fraction of trials where the total number of
+    people in the restaurant is above `5*16`, `6*16`, etc., until you
+    find an acceptable answer.
+
+**Response:** Ok, this question is too tricky. The first sentence says
+"manager find prob. of suffering way TOO HIGH". Then the very next
+sentence says "wants there to be at most 10% chance service GOES
+SMOOTHLY". So which is it? Are we meant to find the 90% suffering like
+the 2nd sentence wants, or is that mistype and it wants 10% suffer since
+the first sentence says "suffer way too high"?
+
+Anyways, I will just assume it's completely misstyped and see how to get
+the suffer prob. down to 10% at MOST. Which, would be having 10 waiters
+with 9 waitresses it's 10.xx -\> rounding up to around 11%. Whereas 10
+waiters will make sure it is never above 10% which the question says "at
+most 10%".
+
+```{r Q9b}
+nTrials = 50000
+counterA = 0
+
+for (i in 1:nTrials) {
+  pSize = sample(c(1, 2, 3, 4, 6, 8), 1, FALSE, c(0.05, 0.20, 0.15, 0.4, 0.15, 0.05))
+  parties = sample(15:35, pSize, TRUE, seq(from =2.6, to=1, length=length(15:35)))
+  total.people = sum(parties)
+  if (total.people > (10 * 16)) counterA = counterA + 1
+}
+
+# This is the "real" answer, sanity check I believe is wrong
+print(counterA / nTrials)
+```
+
+------------------------------------------------------------------------
+
+## Question 10: (Bonus) Let me off of this bus!
+
+A bus route has 20 total stops. At each stop, a random number of people
+(0, 1, 2, 3, 4, or 5; each are equally likely) get on the bus (the bus
+is large, and can accommodate everyone). Imagine that each passenger
+chooses at random (from the stops remaining on the route), which stop to
+depart the bus.
+
+a)  Estimate the probability that at least 1 person gets off on stop 8
+    (close to 71%)
+
+b)  Estimate the probability that at least 5 people get off on the 15th
+    stop (close to 24%)
+
+Strategy. During each trial:
+
+-   Define an empty vector called `stops`
+-   Use a `for` loop where the looping variable is named `stop`; it
+    should take on values of 1, 2, etc., up to 19 (you're going to do
+    something for each stop).
+-   In this `for` loop, figure out how many people get on with the
+    appropriate `sample` command.
+-   "Grow" the vector `stops` by adding to the end of it the stops that
+    are requested by the people who just got on. For example, if
+    `requested.stops` contains the stop numbers requested by the people
+    that just got on, then `stops <- c(stops,request.stops)` will add
+    those to the end of the `stops` vector.
+-   Once the `for` loop over stops has run, you can check to see if at
+    least 1 person got off on stop 8 (and increment your counter), etc.
+
+```{r Q10}
+nTrials = 10000
+counterA = 0
+counterB = 0
+
+for (i in 1:nTrials) {
+  stops = c()
+  counterFifteen = 0
+  for (stop in 1:19) {
+    people = sample(0:5, 1, FALSE)
+    requested.stops = sample(stop:20, people, TRUE)
+    stops = c(stops, requested.stops)
+  }
+  if (any(stops == 8)) counterA = counterA + 1
+  
+  for (j in 1:length(stops)) {
+    if (stops[j] == 15) counterFifteen = counterFifteen + 1
+  }
+  if (counterFifteen >= 5) counterB = counterB + 1
+}
+# a:
+print(counterA / nTrials)
+
+# b:
+print(counterB / nTrials)
+```
+
+------------------------------------------------------------------------
+
+## Question 11: (Bonus) - Coffee for Pat M.
+
+Starbucks wants to minimize confusion when people pick up their drink
+orders. Specifically, it wants to make sure that there are 10
+outstanding orders, the labels given to each are unique.
+
+Determine which labeling strategy is better:
+
+-   Label each cup by the customers' initials. For example, Pat Smith
+    would be P.S. If someone else was named Peyton Sanders, then the
+    label would be duplicated.\
+-   Label each cup by the customers' first name. For example, Pat Smith
+    would be Pat. If someone else was named Pat Clement, then the label
+    would be duplicated.
+
+Look into the frequencies of first and last names in the United States.
+Describe your approach and code, and discuss your final answer.
+
+**Response:**
+
+I found some data in
+`https://blogs.sas.com/content/iml/2011/01/14/two-letter-initials-which-are-the-most-common.html`
+and `https://namecensus.com/first-names/common-male-first-names/`
+
+There are likely better sources, see what you can do.
+
+```{r Q11}
+
+```
+
+------------------------------------------------------------------------

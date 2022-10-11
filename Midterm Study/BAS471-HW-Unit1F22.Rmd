@@ -1,0 +1,266 @@
+---
+title: "BAS 471 Fall 2022 Homework on Unit 1 - Fundamentals of Probability Solutions"
+author: "Jake Shoffner (jshoffn3)"
+date: "see Canvas for due date"
+output:
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+#Leave this as-is.
+knitr::opts_chunk$set(echo = TRUE,collapse=TRUE)
+if( as.numeric( paste( unlist( strsplit( paste(R.Version()$major,R.Version()$minor,sep="."),split="\\.") ),collapse="") ) < 421 ) { 
+  stop("You must have R version 4.2.1 or later to knit this document")}
+RNGversion("4.2.1")
+```
+
+------------------------------------------------------------------------
+
+# Note: these are your homework problems
+
+As a reminder about the collaboration policy, remember that you can develop a common set of R code with your colleagues. However, all written interpretations (i.e., anything that follows a **Response:**) needs to be written in your own words. Homework submissions that look to be near copies of each other will receive substantially reduced credit.
+
+------------------------------------------------------------------------
+
+# Question 1 - Exploration of the Frequentist Definition of Probability
+
+a.  KFC's analytics team is interested in finding the probability that some of its better customers dine at KFC on any given night. KFC runs a promotion where customers report to KFC what they had for dinner each night for 30 days (if a customer reports every day, they get a \$20 gift card to KFC). Consider the responses of Hannah Jones, a single woman who ate at KFC for dinner in 4 out of the 30 days. True or False and explain: according to the strict frequentist definition of probability (which requires independent trials conducted under identical conditions), the fraction of these 30 days where Hannah ate at KFC (4/30, or about 13%) is a good estimate of the probability that Hannah has KFC for dinner.
+
+**Response:** False. A good estimate of the probability that Hannah has KFC for dinner is heavily influenced in this scenario by the incentive of the \$20 gift card to KFC. If they are willing to give you this just for reporting, it is going to be on their mind considerably more than in a normal month of eating. It does not seem realistic to take this probability as a good estimate.
+
+b.  "Probable cause" is the standard by which judges evaluate arrests without warrants, many warrantless searches and seizures, and requests for arrest warrants and search warrants. Courts are extremely reluctant to describe probable cause---and reasonable suspicion---in terms of numbers. But judicial opinions suggest that probable cause is something less than preponderance of the evidence, the typical standard for deciding civil cases. Imagine a judge grants a search warrant and says "The probability that the person has a large stash of drugs in their house is 35%". True or False and explain: according to the strict frequentist definition of probability (which requires independent trials conducted under identical conditions), the judge is "correct" in using the the term probability to describe how likely it is that the person has a stash of drugs in their house.
+
+**Response:** False, the person either has a large stash of drugs in their house, or does not. You can't use probability to help fill in the gaps of ignorance. It's either 0 or 1 probability, not 0.35.
+
+------------------------------------------------------------------------
+
+## Question 2 - A common probability fallacy
+
+Who wouldn't enjoy winning the Powerball? Going to the official website (`https://www.powerball.com/games/home`), it's explained that "There are 9 ways to win a prize in Powerball" (e.g. matching 3 white numbers, matching 4 white numbers and the Powerball, etc.).
+
+Consider a ticket that has indeed won one of those 9 prizes. Going to the odds chart, you can find that the probability of winning the grand prize is 1 in 292,201,338 while the probability of winning \$50,000 is 1 in 913,129.18. We all know the numbers in Powerball are picked at random, so why isn't the probability that a winning ticket has won the grand prize (or 50K, or any of those 9 prizes) 1 out of 9?
+
+**Response:** If we are just dealing with a winning ticket, then the reason it isn't 1/9 is because the higher the prize money, the less frequent winners are likely to appear for that specific prize. The lower prize pools have a more of a chance to appear than the higher ones.
+
+------------------------------------------------------------------------
+
+## Question 3 - Probability and infinite sample spaces
+
+An enemy weapons silo is located somewhere in a 2 mile by 2 mile square in the desert. The goal is to destroy this silo by executing precision laser strikes from space. Let's treat the weapons silo as a circle with radius 0.1 mi located somewhere inside this square. Unfortunately, the aiming of the laser strike is a bit wonky, so the location of the strike is consistent with a randomly picked point somewhere inside the square.
+
+a)  What's the probability that the first strike destroys the silo, i.e., lands inside the circle representing the silo. Hint: this is very analogous to the dartboard and bullseye problem described in the videos/notes. Sanity check: about 0.8%.
+
+**Response:** 0.007853982 probability (no idea what "Sanity check: about 0.8%" means, is that a number to check against?)
+
+```{r Q3a}
+# Area of a cirlce = pi * r^2
+siloArea <- pi * (0.1) ^ 2
+# Area of the entire desert/sample space
+totalArea <- 2^2
+
+# Calculating the probability and printing it
+prob <- (siloArea / totalArea)
+print(prob)
+```
+
+b)  The probability of destroying the silo with single strike is low, so it is decided to deploy 50 strikes. What is the probability that at least one of those 50 strikes destroys the silo? Sanity check: about 33%.
+
+**Response**: 0.3926991 probability. (Using the addition rule w/ independent events) I think the "Sanity check: about 33%" might be off a little bit.
+
+```{r Q3b}
+# Probability calculated above in 3a)
+singleProb <- 0.007853982
+
+# Getting no hits in 50 attempts, at least one is the complement
+noneinFifty <- (1 - singleProb)^50;
+fiftyProb <- 1 - noneinFifty;
+
+# Printing the probability
+print(fiftyProb)
+```
+
+c)  **Bonus** What is the minimum number of strikes needed so that there is at least a 90% chance of destroying the target? Explain your reasoning.
+
+**Response:** 115 strikes are needed so that there is AT LEAST a 90% chance of destroying the target. I just setup an algebraic equation shown below and solved for the strikes needed, then rounded up to the closest whole number.
+
+```{r Q3c}
+singleProb <- 0.007853982
+
+# 0.90 = singleProb * totalStrikes
+# REARRANGING THE ALGEBRAIC EQUATION TO GET: totalStrikes = (0.9 / singleProb)
+ninetyProbStrikes <- (0.90) / (singleProb)
+print(ninetyProbStrikes)
+```
+
+------------------------------------------------------------------------
+
+# Question 4 - Practice using addition, multiplication, and complement rules
+
+Being a rebel, you park at UT illegally every day. Imagine that parking enforcement randomly picks days to give tickets. Each day, there is an independent 13% chance of deploying the ticketing fleet. If the fleet is deployed, and you are parked illegally, you *will* get a ticket since they are very thorough!
+
+a.  What is the probability of getting a ticket on the first day and on the second day that you park at UT (i.e. on both of the first two days)?
+
+```{r Q4a}
+# Multiplication rule of independent events: P(A and B) = P(A) * P(B)
+prob <- 0.13 * 0.13
+print(prob)
+```
+
+b.  What is the probability of getting a ticket on the third day *or* on the fifth day that you park at UT? Remember that "or" really means "at least one of", so this is asking "what is the probability of getting at least one ticket during these two days". Try using the addition rule.
+
+```{r Q4b}
+# Addition rule, mutually exclusive
+prob <- 0.13 + 0.13
+print(prob)
+```
+
+c.  There are 28 days that BAS 471 meets. What is the probability that you'll luck out and park these 28 days without getting a ticket (about 2%)? How about 10 days (the number of meetings in September) without a ticket (about 25%)?
+
+```{r Q4c}
+# Complement rule: If there's 13% you will, then there's a (1 - .13) you won't, plus Mult. Rule
+probTwentyEight <- (1 - 0.13) ^ 28
+print(probTwentyEight)
+
+# Same logic as above, except in stead of 28 days, it's only 10 days
+probTen <- (1- 0.13) ^ 10
+print(probTen)
+```
+
+d.  Using the complement rule, find the probability you'll get at least 1 ticket over the course of 18 parking days (note: the event "at least one" is the complement of "zero")?
+
+```{r Q4d}
+# probability of not getting a ticket in 18 parking days
+pNoTicket <- (1 - 0.13) ^ 18
+
+# probability of getting at least one ticket in 18 parking days is the complement rule
+pAOTicket <- (1 - pNoTicket)
+print(pAOTicket)
+```
+
+e.  Your friend at another university says: "I'm in a probability class right now and we just learned about the addition rule. I think this is how it works. If I want to know the probability that someone gets 0, or 1, or 2, or 3" tickets, i.e. P(0 or 1 or 2 or 3), I calculate P(0) + P(1) + P(2) + P(3)."
+
+Your friend is correct. However, your friend continues:
+
+"At UT, there is a 13% chance of getting a ticket if you park illegally. Thus, after 8 parking days, the probability of getting a ticket is P(ticket on day 1 or ticket on day 2 or ticket on day 3 or ... or ticket on day 8) = P(ticket on day 1) + P(ticket on day 2) + ... + P(ticket on day 8) = 0.13+0.13+...+0.13 = 8\*0.13 = 104%! But that can't be right since probabilities are 100% or less"
+
+Explain to your friend the flaw in the reasoning and calculation that yielded a percentage greater than 100%.
+
+**Response:** Based on the problem, this leads me to believe that these events must be mutually exclusive, or cannot happen at the same time. Meaning you can't get a parking ticket on the same day as another, but since you go to 8 days, it goes one day past the days in a week, causing intersection which is not proper for this specific problem. Which ultimately leads to this person getting a probability above 1.
+
+------------------------------------------------------------------------
+
+# Question 5 - More practice using addition, multiplication, and complement rules
+
+The Petsmart analytics team is trying to train an AI to recognize various breeds of dogs. In the dog dataset they are using:
+
+-   35% have a single fur color (white, black, brown, beige, etc.)
+
+-   45% have two fur colors (white+black, brown+white, etc.)
+
+-   20% have a long tail (but not floppy ears)
+
+-   50% have floppy ears (but not a long tail)
+
+-   8% have a long tail and floppy ears
+
+-   85% have the same color eyes (15% have heterochromia, where the eyes are different colors)
+
+-   40% have at least one brown eye
+
+-   37% have two brown eyes
+
+One of these dogs is randomly selected. Using logic, the addition/multiplication/complement rules (or others), and/or a Venn diagram (if you draw one, take a screenshot and paste into your Word document after knitting), determine the probability that the dog:
+
+a)  Has one or two fur colors.
+
+**Response:** P(single color) + P(two colors) = (0.35 + 0.45) = 0.80 probability
+
+b)  Has three or more fur colors.
+
+**Response:** 1 - P(one or two fur colors) = 1 - 0.80 = 0.20 probability
+
+c)  has floppy ears or a long tail (remember that in probability that "or" means at least one of these two things)
+
+**Response:** P(f. ears) + P(l. tail) + P(f. ears AND l. tail) = (0.20 + 0.50 + 0.08) = 0.78 probablity
+
+d)  has floppy ears or a long tail (but not both)
+
+**Response:** P(f. ears) + P(l. tail) = (0.20 + 0.50) = 0.70 probability
+
+e)  has the same color eyes or has at least one brown eye (remember that in probability that "or" means at least one of these two things)
+
+**Response:** P(same color eyes) + P(at least one brown eye) - P(have 2 brown eyes) = (0.85 + 0.40) - (0.37) = 0.88 probability
+
+f)  has two eyes of different colors, neither of which are brown
+
+**Response:** P(2 eyes diff. colors) \* P(none being brown) = (0.15 \* (1- 0.4)) = 0.09 probability
+
+------------------------------------------------------------------------
+
+# Question 6 - using expand.grid and combn
+
+The `expand.grid` and `combn` functions in R provide very useful functions for enumerating the sample space of an experiment when outcomes are picked with replacement (`expand.grid`) and without replacement and where order doesn't matter (`combn`), respectively. The function creates a dataframe with column names of your choosing for easy interpretation of the result. A few examples illustrate how it works:
+
+```{r expand grid and combn,eval=FALSE}
+#Sample space for flipping 4 fair coins
+expand.grid(Flip1=c("H","T"),Flip2=c("H","T"),Flip3=c("H","T"),Flip4=c("H","T") )
+#Sample space for rolling 3 dice
+expand.grid(Roll1=1:6,Roll2=1:6,Roll3=1:6)
+#Sample space when pairing together one of the first 10 letters of the alphabet and a number 1-7
+#recall that `letters` is a built in vector containing all lower case letters
+expand.grid(Pick1=letters[1:10],Pick2=1:7)
+#Sample space when 2 letters are picked from A-D, order doesn't matter
+combn( c("A","B","C","D"), 2)
+```
+
+People in investment analytics are always looking for patterns in stock movements. If there is an association between what a stock does today and what it's done the last few days, they may be able to predict whether to buy or sell on any particular day.
+
+To differentiate between "pure randomness" and a pattern, we need a good handle over what stock movements look like if they have an independent 50% chance of going up and a 50% chance of going down each day. Let's consider the sample space of the five movements over the course of a trading week.
+
+a)  Enumerate (and print to the screen so it is in your knitted document) the sample space for the "experiment" by running `expand.grid`. You can adapt the code in the first example of `expand.grid` (coin flips), having the columns be labeled Day1, Day2, Day3, etc., and having the possibilities be Up and Down. The result should have 32 rows.
+
+*Note*: Now is a good time to set your RStudio options so that output of code is sent down to the Console (bottom window) instead of being virtually embedded in this Rmd file. Go to Tools, Global Options, click on the R Markdown tab, then make sure "Show output inline for all R Markdown documents" is UNCHECKED.
+
+```{r Q6a}
+# expand.grid() call
+printGrid = expand.grid(Day1=c("Up","Down"), Day2=c("Up","Down"), Day4=c("Up","Down"), Day4=c("Up","Down"), Day5=c("Up","Down"))
+print(printGrid)
+```
+
+b)  A "run" is a set of sequential movements that are all the same. For example, the sequence Up Up Up Up Up has 1 run. The sequence Up Down Down Up Up has 3 runs. Let event A be the event that a sequence of movements has 4 runs. By eye, looking at the results of `expand.grid` (i.e., no equations/rules), determine how many items in the sample space satisfy event A, then calculate P(A). *Count carefully!*
+
+**Response:** Event A is satisfied 8 times in the sample space given. P(A) = 8 / 32 = 1/4 = 0.25 probability
+
+------------------------------------------------------------------------
+
+# Question 7 - Resolving a "paradox"
+
+The frequentist interpretation of probability takes the probability of an event as the "long-run fraction of independent trials (conducted under identical conditions) where the event occurs". If a cardinal direction is randomly picked on a compass (North, South, East West), the probability of picking North is said to be 1/4 because after a "large" number of picks, the fraction of them that are North will be quite close to 1/4. However, simultaneously, the *actual* number of Norths that are picked is expected to grow farther and farther away from 1/4th of the number of picks. Let's try to resolve this seeming paradox.
+
+Head to `https://professorpetrie.shinyapps.io/Frequentist/`
+
+a)  On the applet, change the probability of the event to 0.25, the number of trials to 100,000, the random number seed to the last 3 digits of your student ID (if the last 3 were 027, you'd set it to 27). Take a screenshot. After knitting, you'll put this screenshot in your document.
+
+**Response:** (insert screenshot here)
+
+b)  The applet shows that as the number of trials increases, the fraction of trials where North was picked edges closer to 0.25 (top plot). However, the actual number of Norths picked (bottom plot) tends to drift farther and farther away from 1/4th of the number of picks (the horizontal line is this "expected" number of picks that are North).
+
+We will "discover" this in a later unit, but there is an equation that does a good job of describing the deviation between the observed *proportion* of Norths picked and the expected *proportion* (i.e., the probability) of 1/4 after a number of picks $n$:
+
+$$\textrm{Deviation between observed and expected proportion of Norths} = \frac{\sqrt{3}}{2} \cdot \frac{1}{\sqrt{n}}$$
+
+This deviation gets smaller as the number of trials $n$ grows the denominator (containing a $\sqrt{n}$) gets bigger and bigger.
+
+The number of Norths picked can be found from the proportion of Norths picked by multiplying by the number of picks:
+
+$$\textrm{Number of Norths} = n \cdot\textrm{Proportion of Norths}$$
+
+Thus, the deviation between the observed *number* of Norths and the expected *number* of Norths is:
+
+$$\textrm{Deviation between observed number and expected number of Norths}= n\cdot \textrm{Deviation between observed and expected proportion of Norths} $$ $$\textrm{Deviation between observed number and expected number of Norths}= n\cdot  \frac{\sqrt{3}}{2} \cdot \frac{1}{\sqrt{n}}$$
+
+Simplify this equation, flex those math and logic muscles, and explain why it's no contradiction that observed number of Norths strays farther away from the expected number of Norths as the number of picks increases, while simultaneously the observed proportion of Norths edges closer to the expected proportion (1/4) as the number of picks increases.
+
+In other words, argue that the deviation between the observed and expected number of Norths gets bigger as $n$ grows.
+
+**Response:** Deviation between observed number and expected number of Norths = (n \* sqrt(3)) / (2 \* sqrt(n))... So as the number of picks increase, it very slowly increases at a faster rate than the deviation between the observed and expected proportion of Norths.

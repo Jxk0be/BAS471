@@ -1,0 +1,525 @@
+---
+title: "BAS 471 Fall 2022 Homework on Unit 5 Parts 1-3 - Probability Models for Counts"
+author: "Jake Shoffner"
+date: "see Canvas for due date"
+output:
+  word_document: default
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+#Leave this as-is.
+knitr::opts_chunk$set(echo = TRUE,collapse=TRUE)
+if( as.numeric( paste( unlist( strsplit( paste(R.Version()$major,R.Version()$minor,sep="."),split="\\.") ),collapse="") ) < 421 ) { 
+  stop("You must have R version 4.2.1 or later to knit this document")}
+RNGversion("4.2.1")
+```
+
+------------------------------------------------------------------------
+
+# Note: these are your homework problems
+
+Reminder about collaboration policy. You can develop a common set of R
+code with you and your friends. However, anything that is written
+interpretation, i.e., anything that follows a **Response:** needs to be
+written up in your own words. Homeworks that look to be near copy/pastes
+of each other will receive substantially reduced credit.
+
+------------------------------------------------------------------------
+
+## Question 1
+
+The following problems ask you to work with summation or product
+notation. For these, I suggest writing out the equation by hand, taking
+a photo, and inserting it into your Word document after you've knitted
+the homework. Though not recommended, you can also write these equations
+in Word using the equation editor, or learn how to do this is LaTeX.
+Although it's not required, I suggest you also evaluate the sum with
+Wolfram-Alpha since we will begin heavily relying on it for the
+remainder of the semester.
+
+Quick summary (though summation notation is addressed in the notes and
+videos):
+`https://math.illinoisstate.edu/day/courses/old/305/contentsummationnotation.html`
+
+a)  Write the following sum using summation notation, having the
+    summation index `i` start at 10. Then, in the R chunk, evaluate the
+    sum by defining `i` to be the appropriate integer sequence, and by
+    using `sum` on the appropriate equation using `i`. Sanity check: a
+    little over 168000.
+
+32 + 35 + 38 + 41 + 44 + .... + 998 + 1001 + 1004
+
+**Response:** Work below in R chunk.
+
+```{r Q1a}
+sum = 0;
+for (i in seq(from = 10, to = 982, by= 3)) {
+  sum = sum + (i + 22)
+}
+sum
+```
+
+b)  Write the following infinite sum using summation notation, then use
+    R to evaluate it:
+
+$$1 - \frac{3}{5} + \frac{4}{10} - \frac{5}{17} + \frac{6}{26} - \ldots$$
+
+Hints: note how each term looks like the value `(i+1)/(1+i^2)` for some
+value of `i`. To get the alternating signs, you could multiply each term
+by either $(-1)^i$ or $(-1)^(i+1)$, depending on what value of `i` you
+use to start out the series. Since there is an infinite number of terms,
+to "evaluate" the sum in R, define `i` to be an integer sequence with at
+least 500,000 elements, then `sum` the appropriate equation using `i`.
+Sanity check: a little above 0.633.
+
+**Response:** Work below in R chunk.
+
+```{r Q1b}
+sumB = 0;
+for (i in 1:500000) {
+  sumB = sumB + (-1)^(i - 1) * ((i + 1) / (1 + i ^ 2))
+}
+sumB
+```
+
+c)  Consider the product:
+
+$$\frac{2}{1} \cdot \frac{4}{3} \cdot \frac{6}{5} \cdot  \frac{8}{7} \ldots \cdot \frac{1000}{999}$$
+
+Notice the numerators are multiples of 2 and the denominators are a
+sequence of odd numbers. Write the equation in product notation,
+evaluate it in R. Sanity check: a little under 40.
+
+**Response:** Work below in R chunk.
+
+```{r Q1c}
+# needs to be 1 since we are doing product instead of sum
+sumC = 1;
+for (i in 1:999) {
+  # if it's an odd number, then we can use this here
+  if (i %% 2 == 1) sumC = sumC * ((i + 1) / i)
+}
+sumC
+```
+
+------------------------------------------------------------------------
+
+## Question 2
+
+When signing up as a new customer to a streaming service, you are asked
+to select at least three shows from a selection of 80 different shows
+hosted by the streaming service.
+
+Let `X` be the number of different shows selected by a new customer. The
+possible values for `X` are between 3 and 80. The analytics team wants
+you to explore making a probability model for `X`.
+
+The team has a shape they'd like the probabilities to follow:
+
+$$Shape = 2e^{-(x-3)/5} + 0.01xe^{-(x-30)^2/200} \qquad x=3, 4, \ldots, 79, 80$$
+This shape is inspired by the fact that upon signing up, it's the most
+likely that someone selects the minimum of three shows. Then, after
+three, larger values are progressively more rare until there's a "bump"
+around 30 or so (this tends to be where more die-hard new customers end
+up selecting a lot of shows). The following R chunk defines a vector `x`
+to contain the possible values of `X`, and defines a vector `shape` that
+gives the relative frequencies of the possible values in `x`. Remember
+that to take `e` and raise it to a power in R, you need to write it as
+`exp()`, with the power going inside the parentheses.
+
+```{r Q2}
+x <- 3:80 
+shape <-  2*exp(-(x-3)/5) + 0.01*x*exp( -(x-30)^2 / 200 )
+barplot(shape,names.arg=x,xlab="Total Selections",ylab="Relative Frequency")
+```
+
+a.  The values in `shape` clearly do not contain the *probabilities* of
+    each possible value (among other reasons, some values in `shape` are
+    greater than 1). However, since there are a finite number of
+    possible values of `x`, we can convert the `shape` vector into a
+    vector of probabilities using the standard conversion method! Do so,
+    defining a vector `p` whose elements give the probabilities of
+    observing each value of `x`. Show the sum of the elements in `p`
+    equals 1, print to the screen the value of `p[30]` (it should be
+    0.01723217), and provide a barplot of the PMF. Label the horizontal
+    axis "Total Selections" and the vertical axis "Probability.
+
+```{r Q2a}
+# scaling it to probabilities
+p = shape / sum(shape)
+
+# sum of p = 1
+sum(p)
+
+# p[30]
+p[30]
+
+# barplot
+barplot(p,names.arg=x,xlab="Total Selections",ylab="Probability")
+```
+
+b.  Using `which`, `sum`, and various logical conditions, determine the
+    following probabilities.
+
+-   P(X=3); about 10.7%
+-   P(X \> 40); about 9.1%
+-   P(X is between 10 and 20); 10 and 20 are included; about 16.4%
+-   P(X is an odd number); about 53%; hint, use a `seq` command
+-   P( X is at most 10 or between 15-20 or at least 45 ); about 59%;
+    hint, you'll want three logical conditions separated by "or"s
+
+```{r Q2b}
+#P(X=3)
+sum(p[which(x == 3)])
+
+#P(X > 40)
+sum(p[which(x > 40)])
+
+#P(X is between 10 and 20 inclusive)
+sum(p[which(x >= 10 & x <= 20)])
+
+#P(X is an odd number)
+sum(p[which(x %% 2 == 1)])
+
+#P( X is at most 10 or  15-20 or at least 45 )
+sum(p[which(x <= 10 | (x >= 15 & x <= 20) | x >= 45)])
+```
+
+------------------------------------------------------------------------
+
+## Question 3
+
+Half-way into your workday, you get stuck reading some data into R. You
+email your analytics team hoping they can clarify something about the
+data. Waiting to hear back from them can feel like forever! Let `X` be
+the number of minutes it takes to receive a response (let's round to the
+nearest minute so it's all integer values). The possible values of `x`
+are 0, 1, 2, 3, ... (no real upper limit, so we'll take that to be
+"infinity").
+
+$$Shape = x^2 e^{-x/20} \qquad x=0, 1, 2, 3, \ldots$$
+
+This shape is not a valid PMF since the sum of all the "shape" values
+does not equal 1. It's not possible to do the standard shape conversion
+trick (`p <- shape/sum(shape)`) because there are an infinite number of
+possible values of `x`. However, it *is* possible to convert the shape
+equation into a PMF by multiplying it by the reciprocal of a well-chosen
+number!
+
+$$P(X=x) = \frac{1}{???}\left( x^2 e^{-x/20}  \right) \qquad x=0, 1, 2, 3, \ldots$$
+
+a)  Use Wolfram-Alpha to find the value of `???` in the equation above.
+    Wolfram will give the "exact" answer which involves a lot of weird
+    powers of "e", and then it'll say it's $\approx$ equal to some
+    value. Feel free to use that approximate value for the remainder of
+    the problem! Provide a screenshot of your work in Wolfram (paste
+    into Word after knitting).
+
+**Response:** 16000 (SCREENSHOT HERE)
+
+b)  Although the values of `x` technically go up to infinity, define `x`
+    to be the integer sequence 1 to 300 and `p` to be the vector of
+    corresponding probabilities *using your equation* for $P(X=x)$
+    (after you've solved for `???` in (a); no `p <- shape/sum(shape)`
+    here!)
+
+b1) Show `sum(p)` is "basically 1" (I was getting 0.9999615), implying
+that `x` and `p` provide a "reasonable enough" PMF for the quantity we
+wish to study since we've captured "most" of the probabilities (even
+though the possible values of `x` go to infinity).
+
+b2) Provide a bar chart of the PMF. Label the x-axis "Minutes until
+response" and the y-axis "Probability".
+
+Remember that to take `e` and raise it to a power in R, you need to
+write it as `exp()`, with the power going inside the parentheses.
+
+```{r Q3b12}
+x = 1:300
+p = (1 / 16000) * ((x^2) * (exp(-x/20)))
+sum(p)
+barplot(p, names.arg=x, xlab="Minutes until response", ylab="Probability")
+```
+
+c)  Use your PMF vectors `x` and `p` to find the probability that you
+    have to wait at least 2 hours for a response. Sanity check: a little
+    over 6.3%.
+
+```{r Q3c}
+sum(p[which(x >= (2 * 60))])
+```
+
+------------------------------------------------------------------------
+
+## Question 4
+
+Let's practice identifying when to use various notorious discrete
+probability distributions. Choose between uniform, geometric, binomial,
+negative binomial, Poisson, and zero-Truncated Poisson. Do not choose
+negative binomial when the geometric distribution could be used (the
+geometric is simpler, more specific case of one flavor of the negative
+binomial).
+
+a.  What would be the go-to distribution to model the number of times a
+    mobile food-delivering robot collides with a person or other robot
+    over the course of a week?
+
+**Response:** Poisson distribution.
+
+b.  What would be the go-to distribution to model the number of members
+    of the UT's Sports Analytics Society (92 members) who own both a dog
+    and a cat?
+
+**Response:** Binomial distribution.
+
+c.  What would be the go-to distribution to model the number of Rick and
+    Morty references that Brian Steven makes in a STAT 201 or BAS 320
+    lecture?
+
+**Response:** Zero-Truncated Poisson distribution.
+
+d.  What would be the go-to distribution to model the total number of
+    times a person has donated to UT (among only those people who
+    previously donated to UT)?
+
+**Response:** Poisson distribution.
+
+e.  What would be the go-to distribution to model the minute of the hour
+    (1-60) of someone's birth?
+
+**Response:** Uniform distribution.
+
+f.  What would be the go-to distribution to model the number of credit
+    and debit cards someone has in their wallet (not everyone carries
+    these cards)?
+
+**Response:** Zero-Truncated Poission distribution.
+
+g.  What would be the go-to distribution to model the number of
+    deliveries you receive from amazon.com before you receive a delivery
+    that contains a defective product?
+
+**Response:** Geometric distribution.
+
+h.  What would be the go-to distribution to model the number of the
+    orange M & Ms (Go Vols!) in a typical 1.69oz pack (56 candies
+    total)?
+
+**Response:** Binomial distribution.
+
+i.  Each day, a dog has a probability `p` of trying to escape the
+    backyard. Other days (with probability `1-p`), the dog stays put and
+    does not try to escape. On each attempt at escape, the dog learns a
+    bit more as to how to get out. Imagine that on the 8th escape
+    attempt, the dog will finally be able to get out. What is the go-to
+    distribution to model the total number of days that the dog stays
+    put in the yard (with no attempt at escape) before the dog finally
+    gets out?
+
+**Response:** Geometric distribution.
+
+------------------------------------------------------------------------
+
+## Question 5:
+
+Let's practice using the notorious discrete probability distributions in
+R.
+
+a.  Let's model the number of times that shoppers of Best Buy make a
+    purchase in-store or online in a December with a Poisson
+    distribution with an average of 0.9. Determine the value of `lambda`
+    for this Poisson (hint: this is an easy one), then determine
+
+-   the probability someone makes exactly 2 purchases in December
+-   the probability someone makes the average number of purchases (0.9)
+    in December
+-   the probability that makes 4 or more purchases in December
+
+```{r Q5a}
+#2 purchases
+dpois(2, 0.9)
+
+#Average number of purchases
+# this answer would be 0 because someone can't make a decimal number of purchases.
+0
+
+#4 or more purchases
+1 - ppois(3, 0.9)
+```
+
+b.  Most (but not all) delivery attempts by the food-delivering robots
+    on campus are completed in a timely manner. Let's define a
+    "successful delivery" to be one that takes at most 15 minutes.
+    Imagine that the probability a robot is able to make a successful
+    delivery is 0.88, and that the result of each delivery is
+    independent of one another. If the robot is scheduled to make 60
+    deliveries in day, find the probability that:
+
+-   the robot has a perfect record for the day (all 60 deliveries are 15
+    minutes or less) ; about 0.05%
+-   the robot has between 48 and 56 (inclusive) successful deliveries;
+    about 91.6%
+-   the robot has 50 or fewer successful deliveries; about 17.8%
+
+```{r Q5b}
+#Exactly 60
+dbinom(60, 60, 0.88)
+
+#Between 48-56 inclusive
+sum(dbinom(48:56, 60, 0.88))
+
+#50 or fewer
+pbinom(50, 60, 0.88)
+```
+
+c.  You are asked to give out flyers about the Sports Analytics Club to
+    people in the student union. Oddly enough, most people are not
+    interested, with each person independently having a 93.5% chance of
+    refusing a flyer. After quite some time, you end up with only a
+    single flyer left to give away.
+
+The geometric distribution describes the number of people we have to ask
+*before* someone finally accepts that last flyer. For the following
+questions, figure out what it's asking about the number of "failures"
+(refusals of the flyer) before the first "success" (accepting the
+flyer), then find the requested probabilities.
+
+-   the probability that you will give away the last flyer to the 6th
+    person you ask (about 4.6%).\
+-   the probability that you'll give away your last flier to the 4th,
+    5th, 6th, 7th, 8th, or 9th person you ask (about 27.1%)
+-   the probability you'll have to ask *more than 20* people before you
+    run into the person who takes your last flyer (about 24.4%)
+
+```{r Q5c}
+#Last flyer to the 6th person you ask
+dgeom(6, 1 - 0.935)
+
+#Last flyer to person 4-9 inclusive (2 different ways to do it)
+sum(dgeom(4:9, c(1 - 0.935,1 - 0.935,1 - 0.935,1 - 0.935,1 - 0.935, 1 - 0.935)))
+pgeom(9, 1- 0.935) - pgeom(3, 1 - 0.935)
+
+#More than 20 people
+sum(1 - pgeom(20, 1- .935))
+```
+
+d.  Selling in-game currency for real-world money in online games like
+    World of Warcraft and Final Fantasy XIV is referred to as RMT, or
+    "real money trading". It's a nice way to earn some extra cash, but
+    because it is expressly forbidden in the terms of service, doing so
+    risks your account getting banned from the game. Imagine each RMT
+    sale has a 20% chance of being detected. An account gets banned once
+    the 3rd RMT sale has been detected. Find the probability that:
+
+-   You are able to make at most 10 RMT sales before your account gets
+    banned, i.e. the 3rd detection happens on the 10th sale or before
+    (about 32.2%)
+
+-   You are able to make at least 30 RMT sales before your account gets
+    banned, i.e. the 3rd detection happens on the 30th sale or later
+    (about 5.2%)
+
+Remember that the negative binomial is counting up the number of
+*failures* before a certain number of successes. Treat a "failure" as an
+undetected RMT sale and a "success" as a detected RMT sale (these
+definitions feel awkward from *our* perspective since we want the
+transactions to be undetected, it does make sense from the game owner's
+perspective!).
+
+Translate these questions into how many failures are required to
+describe the event, then use the `nbinom` suite of functions.
+
+```{r Q5d}
+#Make at most 10 RMT sales before account gets banned. 
+pnbinom(7, 3, .20)
+
+#Make at least 30 RMT sales
+# 1 - at most 29 = at least 30, 29 - 3 = 26
+1- pnbinom(26, 3, .20)
+```
+
+------------------------------------------------------------------------
+
+## Question 6 (bonus)
+
+As part of protest, batters are refusing to swing at pitches. The result
+of the game will thus come down to pitcher skill. Imagine that each
+pitch has a 65% chance of being a "strike" and a 35% chance of being a
+"ball". A batter has a "strike out" if 3 strikes occur before 4 balls. A
+batter has a "walk" if 4 balls occur before 3 strikes. You've seen a
+similar problem before back in an activity done in class for Unit 1, and
+in an illustration in a Unit 2 Monte Carlo simulation, but this problem
+takes the analysis much further.
+
+a)  What's the name of the "notorious" distribution that counts up the
+    number of failures that occur before a target number of successes?
+
+**Response:** Negative binomial distribution.
+
+b)  Let a ball be considered a "failure" and a strike a "success". A
+    strikeout occurs when there are 3 strikes (successes) *before* 4
+    balls (failures). In other words, a strikeout occurs when the number
+    of "failures" before the 3rd success is at most 3. Use the
+    appropriate `d` or `p` function in R to calculate the probability of
+    a strikeout (remember back in Unit 1 how tedious it was the
+    enumerate all possible ways a strikeout could occur?). It turns out
+    to be close to 88%.
+
+```{r Q6b}
+pnbinom(1, 1, .65)
+```
+
+c)  Imagine a similar game called "buskerball" is invented where a
+    batter has a "strike out" if 4 strikes occur before 6 balls. A
+    batter has a "walk" if 6 balls occur before 4 strikes. If the
+    probability of throwing a strike is 0.65, what's the probability of
+    a strikeout? It turns out to be close to 95%.
+
+```{r Q6c}
+pnbinom(2, 1, .65)
+```
+
+d)  Back to baseball. Although I haven't seen this as an official sports
+    analytics interview question, I wouldn't be surprised if it is one
+    for some team. In protest, no one is swinging their bat during a
+    game. An "inning" will end with no runs scored as long as 3
+    strikeouts occur before 4 walks. Use one of the notorious
+    distributions to find the probability an inning has no runs scored
+    (about 99.8%). Then, find the probability that the game ends without
+    any runs being scored (9 innings in a row result in no runs scored;
+    about 97.9%).
+
+```{r Q6d}
+
+```
+
+e)  Unfortunately, the pitcher who has the 65% chance of throwing a
+    strike is injured and had to be replaced by a pitcher that only has
+    a 50% chance of throwing a strike.
+
+e1) Find the PMF (`x` and `p`) of the number of points scored in an
+inning, i.e., - The probability an inning ends with 0 points scored (3
+strikeouts occur before 4 walks) - The probability an inning ends with 1
+point scores (the 3rd strikeout occurs after exactly 4 walks) - The
+probability an inning ends with 2 point scores (the 3rd strikeout occurs
+after exactly 5 walks) - etc.\
+- Let `x` be `0:15` (so you go up to 15 points scored) and `p` be the
+corresponding probabilities. Print out the contents of your `p` vector
+once you've defined them, then make a barplot to show the PMF. Have the
+x-label be "Points Scored in Inning" and y-label be "Probability"
+
+e2) Simulate the PMF of the total number of runs scored over the course
+of a game (9 innings) by sampling (with replacement) 9 values from the
+PMF for runs scored in an inning. - Run 100,000 trials, storing the
+total number of points scored in the game in a vector named
+`total.points` - Include a barplot of the results, i.e.,
+`barplot(table(total.points))`. Have the x-label be "Points Scored in
+Game" and y-label be "Probability" - What is the probability that at
+least 5 points are scored during these 9 innings (about 11%)?
+
+```{r Q6e}
+
+```

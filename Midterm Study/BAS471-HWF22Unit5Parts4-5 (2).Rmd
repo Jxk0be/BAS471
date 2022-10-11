@@ -1,0 +1,279 @@
+---
+title: "BAS 471 Fall 2022 Homework on Unit 5 Parts 4-5 - Averages, Standard Deviations, and Checking fit of PMFs"
+author: "Jake Shoffner"
+date: "see Canvas for due date (ONE DAY EARLIER THAN NORMAL)"
+output:
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+#Leave this as-is.
+knitr::opts_chunk$set(echo = TRUE,collapse=TRUE)
+if( as.numeric( paste( unlist( strsplit( paste(R.Version()$major,R.Version()$minor,sep="."),split="\\.") ),collapse="") ) < 421 ) { 
+  stop("You must have R version 4.2.1 or later to knit this document")}
+RNGversion("4.2.1")
+library(fitdistrplus)
+```
+
+------------------------------------------------------------------------
+
+# Note: these are your homework problems
+
+Reminder about collaboration policy. You can develop a common set of R code with you and your friends. However, anything that is written interpretation, i.e., anything that follows a **Response:** needs to be written up in your own words. Homeworks that look to be near copy/pastes of each other will receive substantially reduced credit.
+
+------------------------------------------------------------------------
+
+## Question 1
+
+It's important to understand the difference in the *interpretation* of the average and standard deviation of a set of data values vs. the average and standard deviation of a probability distribution.
+
+-   The average value in the data is the average of the values that have been *collected*. The standard deviation is the typical difference between these *observed* values and their overall average.
+
+-   The average value of a probability distribution is the average value of the *possible* values that might be observed. The standard deviation is the typical difference between this average value and the *possible* values that might be observed.
+
+It's also important to understand the difference in the *procedures* for calculating the average and standard deviation of a set of data values vs. the average and standard deviation of a probability distribution.
+
+a)  If `x` is a vector that contains data values, what line of code calculates the average of the data?
+
+**Response:** mean(x)
+
+b)  If `x` is a vector that contains data values, what line of code calculates the standard deviation of the data?
+
+**Response:** sd(x)
+
+c)  If `x` is a vector that contains the possible values of $X$ for a probability distribution (PMF) and `p` is a vector of the possible values' probabilities, what line of code calculates the average of the probability distribution?
+
+**Response:** sum(x \* p)
+
+d)  If `x` is a vector that contains the possible values of $X$ for a probability distribution (PMF) and `p` is a vector of possible values' probabilities, what line of code calculates the standard deviation of the probability distribution?
+
+**Response:** sqrt(sum((x - sum(x \* p))\^2 \* p))
+
+------------------------------------------------------------------------
+
+## Question 2
+
+Many free-to-play mobile games (e.g. Diablo Immortal) offer a massive selection of in-app purchases that allow you to speed up tedious game-play mechanics or to make your character more powerful. These in-app purchases are *huge* money makers -- Diablo Immortal just became one of the fastest games ever to surpass \$100 million in in-app purchases at eight weeks (Pokemon Go took only two weeks while Fortnite took 12).
+
+Imagine a game that offers 40 different items that a player can purchase in-game (armor, weapons, money packs, mounts, etc.). Let $X$ be the number of these 40 items that a player eventually buys. Possible values of $x$ are 0, 1, 2, 3, ..., 39, 40. Players often purchase combinations of items together. For example, a player that purchases the optional chest armor is *much* more likely than the average player to also purchase the optional leg armor.
+
+In this case, $X$ is well-modeled by the probability mass function (PMF):
+
+$$P(X=x) = \frac{1}{72800.41} \sqrt{x+1} (41-x)^2 \qquad x=0, 1, 2, \ldots, 39, 40$$ a) At first, it sounds like $X$ might be well-modeled by a binomial distribution. Trial 1 could be whether they buy or not (success vs. failure) item 1. Trial 2 could be whether they buy or not (success vs. failure) item 2. Etc. Then $X$ would be the total number of "successes" out of n trials. So why can't the number of in-game items purchased be modeled with a binomial in this example?
+
+**Response:** If we did that, we are only checking one item for each trial, whereas we want to check total items bought for each individual for each trial ran.
+
+b)  Define vectors `x` and `p` so that they make the PMF for this distribution. Verify your probabilities sum to 1 (print out `sum(p)`) and include a barplot to visualize the distribution. Label the x-axis "Number of Items" and the y-axis "Probability". This player-analytics team feels this shape is appropriate. Most players buy between 5-11 items, with a few "die-hard" players having purchased almost every one.
+
+```{r Q2b}
+x = 0:40
+shape = (1 / 72800.41) * sqrt(x + 1) * (41 - x)^2
+
+p = shape / sum(shape)
+sum(p)
+
+barplot(p, names.arg=x, xlab="Number of Items", ylab="Probability")
+```
+
+c)  Find the "mode" (most likely value), the average/expected value (close to 13), and standard deviation (about 8.4) of the distribution.
+
+```{r Q2c}
+#Mode
+x[which(p == max(p))]
+
+#Expected value/average
+mu = sum(x * p)
+mu
+
+#Standard deviation
+sd = sqrt(sum((x - mu)^2 * p))
+sd
+```
+
+d)  Provide an interpretation of the expected value and standard deviation of this distribution in the usual boss-friendly way (i.e. layman's terms in the context of the problem).
+
+**Response:** A typical amount of items a player buys is about 13 give or take 8 or so.
+
+e)  To incentivize additional purchases, the game offers you "bulk" discounts based on the number of items you've purchased so far. Specifically, the purchase price of your `i`-th item is $5/1.1^{i-1}$. Your first item costs 5, second item costs 5/1.1 = 4.545, third item costs `5/1.1^2` = 4.132, etc. Thus, the total amount spent on $x$ items is:
+
+$$Spent = \frac{5}{11^{x-1}}(11^x - 10^x)$$
+
+Note: the equation for $Spent$ is *not* the equation for the shape of the PMF describing the total amount being spent (the equation has nothing to do with the probability of a certain amount spent). Rather, this equation just tells you how to convert from the number of items purchased to the total amount required to purchase that many items (e.g., to purchase 20 items, the total cost is `5/11^19 * (11^20-10^20)` = 46.83).
+
+What is the expected value of the total amount someone spends? Hint, it's quite close to 34.20. If you're getting a number that's much different, you may need to revisit your parentheses!
+
+```{r Q2e}
+totSpent = sum((5 / (11 ^(x - 1))) * (11^x - 10^x) * p)
+totSpent
+```
+
+f)  A key theme of BAS 471 is "averages aren't good enough". If we want to characterize the typical value of a complex random process (like the amount spent associated with a number of items purchased), it's not acceptable to work with just averages. Plugging in the average value of the number of items purchased as the "x" value in our equation for $Spent$ does NOT give us the average amount spent!
+
+Out of curiosity, what value *do* you get when you plug in the average number of items purchased (recall it was about 13) into the equation for amount spent in (e)? You should find that it's about 39.17, nearly 15% larger than the "true" average amount spent you found in part (e).
+
+It would be a *disaster* at the company if your analytics overestimated profits by 15%! This fact is one of *the* most important things you need to learn from BAS 471!
+
+```{r Q2f}
+wrongSpent = sum((5 / (11 ^(mu - 1))) * (11^mu - 10^mu) * p)
+wrongSpent
+```
+
+------------------------------------------------------------------------
+
+## Question 3
+
+Website-analytics and customer-analytics join forces when studying the sequence of pages that customers visit as they peruse an e-commerce site and (hopefully) either sign up for the newsletter or make a purchase.
+
+Let's consider the set of customers who eventually sign up for the newsletter. Let $X$ be a random variable describing the number of pages they visit on the site before signing up. While this sounds like it could be modeled by a geometric distribution, it's been noted that the ordering of the pages matters (i.e., sequential pages visited aren't independent) when determining if a customer signs up during the visit, invalidating the geometric model.
+
+Instead, let's use the following equation as the PMF:
+
+$$P(X=x) = \frac{8}{15+7\sqrt{5}} \cdot \frac{x^2}{5^{x/2}} \qquad x=1, 2, 3, \ldots$$
+
+Since there are an infinite number of possible of values of `x`, let's use Wolfram-Alpha to work with the probability mass function. A visualization in R is provided for values of `x` between 1 and 20 (which contains most of the probability) so you can see its shape.
+
+```{r Q3 setup}
+x <- 1:20
+p <- 8/(15+7*sqrt(5)) * x^2/5^(x/2)
+sum(p) #we've captured most, but not all of the probability, so calculations using x & p are approximate.  Best use Wolfram!
+barplot(p,names.arg=x,xlab="Number of Pages",ylab="Probability")
+```
+
+a)  In Wolfram-Alpha, verify that the equation provides a valid PMF (i.e. the sum of the probabilities over all values of x equals 1).
+
+**Response:** Include a screenshot from Wolfram-Alpha here.
+
+b)  In Wolfram-Alpha, find the probability that the customer visits between 4-10 pages (inclusive) before signing up for the newsletter. About 45.5% (I always chuckle at Wolfram's "approximation" out to like 50 digits).
+
+**Response:** Include a screenshot from Wolfram-Alpha here.
+
+c)  In R, find the "mode" of this PMF.
+
+```{r Q3c}
+# Mode of this PMF
+x[which(p == max(p))]
+```
+
+d)  In Wolfram-Alpha, find the average value of the PMF. It's about 3.7.
+
+**Response:** Include a screenshot from Wolfram-Alpha here.
+
+e)  In Wolfram-Alpha, find the standard deviation of the PMF. It's about 2.15. Use the number output by Wolfram-Alpha in part (d) for the value of $\mu$ in the equation for the standard deviation.
+
+**Response:** Include a screenshot from Wolfram-Alpha here.
+
+f)  Provide an interpretation of the average and standard deviation in the usual boss-friendly way, i.e., in the layman's terms in context of the problem.
+
+**Response:**
+
+g)  The time that someone spends on a particular page gets smaller and smaller as the user visits more pages. Imagine that the *total* time spent on the website is:
+
+$$Time = 2 + 10\log_{10}(x^2+1)$$ Note: this is NOT the PMF of the total time spent; merely it provides a way to translate between the number of pages visited (x) and the total amount of time spent. In Wolfram-Alpha, find the expected value of time spent on the site. It's about 12.7.
+
+**Response:** Include a screenshot from Wolfram-Alpha here.
+
+h)  *cue that old Bernie Sanders meme* Once again I am asking you to appreciate how "averages aren't good enough". If we want to characterize the typical value of a complex random process (like the amount of time associated with the number of pages visited), it's not acceptable to plug in the average value of $X$ (about 3.7) into our equation that translates pages visited to total time.
+
+What is the value you get if you plug in the average value of the number of websites visited into the equation for the time (it's about 13.75)? In this case, we'd overestimate the amount of time spent by about 8% (and potentially budget too many servers and waste money to handle the anticipated load). This fact is one of *the* most important things you need to learn from BAS 471!
+
+```{r Q3h}
+
+```
+
+------------------------------------------------------------------------
+
+## Question 4
+
+Make sure both this .Rmd file and the `FitTheseDistributionsF22.RData` have been moved/saved to your BAS 471 folder. And make sure your working directory is this folder as well. If you get an error loading in the file, and you think you've done these three things, do one last Save As and forcibly save this .Rmd file into your BAS 471 folder.
+
+```{r Q4}
+library(fitdistrplus)
+load("FitTheseDistributionsF22.RData")
+```
+
+Sports betting has enjoyed a massive upturn in popularity over the past decade. While much of this has been put down to the ongoing deregulation of online gambling everywhere from the US to Brazil, there is little doubting the fact that mobile technology is behind the trend.
+
+The vast majority of online sportsbooks now have their own betting apps that allow the user to bet on sports from the convenience of their smartphone or tablet. The best real money betting apps can be downloaded for free.
+
+This saved environment contains numerous vectors related to users of one of these apps. In addition, there are a few vectors related to the scores of football games.
+
+a)  The vector `home.scores` contains the number of points that NFL teams scored during games hosted in their home stadium.
+
+-   Determine which notorious distribution provides the best choice for modeling the data: Poisson, Geometric, or Negative Binomial. Give a detailed explanation of your reasoning.
+-   For the "best choice", save the results of running `fitdist` into an object called `FIT`, then print the contents of `FIT` out to the screen and include `plot(FIT)`.
+-   Comment on whether or not the "best choice" provides a reasonable fit to the data.
+-   Use the "best choice" model to determine the probability a home team scores between 30-40 points (inclusive); about 16%. You can do this by running `sum` on the appropriate "d" version of the selected model.
+
+**Response:**
+
+```{r Q4a}
+
+```
+
+b)  Consider `specialty.bets`, the number of times a registered user has placed a "specialty bet" (something more complex than "the Seahawks will win by at least 5 points").
+
+-   Determine which notorious distribution provides the best choice for modeling the data: Poisson, Geometric, or Negative Binomial. For the "best" model, save the results of running `fitdist` into an object called `FIT`, then print the contents of `FIT` out to the screen and include `plot(FIT)`. If there is a "tie", or no clear preference, say which models are basically equivalent, then choose one to display.
+-   Comment on whether or not the "best choice" provides a reasonable fit to the data.
+
+**Response:**
+
+```{r Q4b}
+
+```
+
+c)  Bonus. Make a histogram of the values of `last.visit`, which gives the number of days it has been since the person placed their last winning bet. It looks like the values are more-or-less uniformly distributed from 0 to 100. However, R doesn't have any built-in functions to fit a discrete uniform distribution to data. Review pages 138-143 of the Unit 5 notes, and you'll find code that allows you to define the "d", "p", and "q" versions of a custom discrete uniform distribution, and you'll find an example of how to plot a fit of the discrete uniform to data. Fit `last.visit` to a discrete uniform, include the diagnostic plot, and comment as to whether the discrete uniform provides a decent fit to this data
+
+**Response:**
+
+```{r Q4c}
+
+```
+
+------------------------------------------------------------------------
+
+## Question 5 (no work required; provided for reference/study)
+
+**All answers provided** Since the length of time you have for this homework is one day shorter than normal, I have included the answers to these five questions where you characterize the mean and standard deviations of the members of the notorious zoo of distributions for counts. It's important to have these all in one place!
+
+All of the notorious distributions have formulas giving their mean and standard deviations. I usually open the R help file for the `d` version of the function (e.g. `?dbinom`), look at the course notes (the study guide page has all of these listed), or look on Wikipedia (except for the negative binomial, whose Wikipedia page is a mess). Since these distributions are so common, you'll want to have these formulas for quick reference.
+
+a)  Take the number of deliveries that a food-delivering robot makes per day to be Poisson with a $\lambda$ of 16. What are the average value and standard deviation of the number of deliveries per day? Quote the formulas for the average/standard deviation and report numerical values as well.
+
+**Response:** For a Poisson, the mean is $\lambda$ and standard deviation is $\sqrt{\lambda}$, so an average of 16 and a standard deviation of 4 deliveries per day.
+
+b)  At your job, 100 tasks get randomly assigned between you and four other employees for the week. Thus, the number of tasks assigned to you has a binomial distribution (20% chance of you receiving any particular task). What is the mean and standard deviation of the number of tasks you are assigned? Quote the formulas for the average/standard deviation and report numerical values as well.
+
+**Response:** For a binomial, the mean is $np$ and the standard deviation is $\sqrt{np(1-p)}$. Thus the average is `100*.20=20` and the standard deviation is `sqrt(100*.20*.80)=4`.
+
+c)  Back in the Homework over Unit 1, you found that the deviation between the expected number of Norths (when directions on a compass were picked randomly, N, E, S, W) and the observed number of Norths after $n$ picks was
+
+$$Deviation = \frac{\sqrt{3} }{2} \cdot \sqrt{n}$$
+
+In Unit 5, we've discussed that the total number of trials where an event occurs has a Binomial distribution with $n$ being the number of independent trials and $p$ being the probability of the event. Thus, explain why the formula, $\sqrt{3}/2 \cdot \sqrt{n}$, now makes sense!
+
+**Response:** The standard deviation of a probability distribution *is* the typical difference between the expected value of `X` and the values of `X` that might be observed. The standard deviation of a Binomial distribution with $n$ trials and probability $p$ is $\sqrt{np(1-p)}$. Plugging in $p=1/4$ (the probability of picking a North), we get $\sqrt{n(1/4)(3/4)} = \sqrt{3n/4} = \sqrt{3}/2 \cdot \sqrt{n}$. So the typical difference between the observed and expected number of Norths after $n$ picks is indeed $\sqrt{3}/2 \cdot \sqrt{n}$
+
+d)  Imagine that the probability that the next person you date is compatible enough to marry is 0.1. The number of people you date before getting married may be well modeled by a geometric distribution. Find the expected value and standard deviation of the number of people you have to date before discovering the person will marry. If use you Wikipedia, be careful you choose the "correct" representation of the geometric (number of failures before the first success). Sidenote: the geometric distribution is so skewed that the mean/standard deviation doesn't really provide a great summary of the values you might see (but we can still get the numbers out of the distribution). Quote the formulas for the average/standard deviation and report numerical values as well.
+
+**Response:** for the geometric distribution, the mean is `(1-p)/p` and standard deviation `sqrt( (1-p)/p^2)`. The mean and standard deviation work out to be 9 and 9.5 respectively. Not a very useful summary here!
+
+```{r Q5d}
+#if needed
+p <- 1/10
+(1-p)/p
+sqrt( (1-p)/p^2)
+```
+
+e)  The dog from the last homework set is thinking about escaping the yard. Each day, there is a 10% chance that the dog tries to escape. Each attempt at escape allows the dog to learn a bit more as to how to get out. On the 8th escape attempt, the dog will have learned enough to finally get out! Take the number of days the dog stays put in the yard (no attempt at escape is made) before it escapes to be a negative binomial. Find the average and standard deviation of the number of days the dog stays put. Quote the formulas for the average/standard deviation and report numerical values as well.
+
+Hint: avoid Wikipedia on this one since the notation it uses for the negative binomial is extremely inconsistent and confusing. Rather, check out the course notes and Study Guide page. Sanity check. the mean is about 72 and the SD is near 27.
+
+**Response:** The course notes show that for a negative binomial:
+
+$$\mu = \frac{r(1-p)}{p} \qquad \sigma = \frac{ \sqrt{r(1-p)} }{p}$$ where $r=8$ (target number of successes) and $p=0.10$ (probability of success)
+
+```{r Q5e}
+#if needed
+8*(1-.1)/.1
+sqrt(8*(1-.1) ) /.1
+```

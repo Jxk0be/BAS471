@@ -1,0 +1,254 @@
+---
+title: "BAS 471 Fall 2022 Homework on Unit 3 - Conditional Probability and Bayes' Theorem"
+author: "Jake Shoffner"
+date: "see Canvas for due date"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+#Leave this as-is.
+knitr::opts_chunk$set(echo = TRUE,collapse=TRUE)
+if( as.numeric( paste( unlist( strsplit( paste(R.Version()$major,R.Version()$minor,sep="."),split="\\.") ),collapse="") ) < 421 ) { 
+  stop("You must have R version 4.2.1 or later to knit this document")}
+RNGversion("4.2.1")
+```
+
+------------------------------------------------------------------------
+
+# Note: these are your homework problems
+
+Reminder about collaboration policy. You can develop a common set of R code with you and your friends. However, anything that is written interpretation, i.e., anything that follows a **Response:** needs to be written up in your own words. Homeworks that look to be near copy/pastes of each other will receive substantially reduced credit.
+
+------------------------------------------------------------------------
+
+For these questions, you'll be asked to compute conditional probabilities using the table method or using the laws of conditional probability (including Bayes Theorem). Tables and equations are not the easiest to write in an .Rmd file. If you wish to hand-write anything, or to do tables in Excel, that's fine! You can take a photo with your phone or a screenshot and paste them into the Word document that is produced *after* you knit.
+
+------------------------------------------------------------------------
+
+## Question 1 - Sports Analytics Interview Questions
+
+These question is an "actual" (slightly adapted) question that BAS majors have been asked when interviewing for analytics positions for Major League Baseball Teams
+
+a)  From the Milwaukee Brewers:
+
+Whether or not a runner on first base attempts to steal second base depends on whether he is playing through an injury. Most players (80%) are fully healthy and have no injuries.
+
+Imagine that a runner on first base will attempt to steal second base on the first pitch:
+
+-   70% of the time when he is fully healthy
+-   10% of the time when he is playing through an injury
+
+This question will help you find the probability that, in a general, a runner is playing through an injury when he does *not* attempt to steal second base.
+
+a1) In general, what is the probability that the runner is playing through an injury? Justify your answer.
+
+**Response:** (1 - .8) = 0.2. 80% are healthy, therefore 20% are not healthy.
+
+a2) In general, what's the probability that an injured player does *not* attempt to steal second base, and what's the probability that a fully healthy player does *not* attempt to steal second base? Justify your answer.
+
+**Response:** (1 - 0.1) = 0.90. 10% of injured attempt to steal base, so 90% of injured do not attempt to steal base. (1 - 0.70) = 0.30. 70% of healthy attempt to steal base, so 30% of healthy do not attempt to steal base.
+
+a3) Use the Table Method (with 1000 total runners) to answer the original question: given that the runner does *not* attempt to steal second base, what is the probability that the runner is playing through an injury (close to 43%)? Fill in *all* cells of the table, not just the ones you need for the appropriate calculation. Do your work by hand on paper (or in Excel), take a picture with your phone (or screenshot), then after knitting insert that picture into your Word document.
+
+Tips:
+
+-   Fill in the row totals first (very last column). If you examine all 1000 runners, how many do you expect to be injured? How many do you expected to be healthy?
+-   Fill in the column for "Not Steal". Of the people who are healthy, how many are expected to not steal? Of the people who are injured, how many are expected to not steal?\
+-   Fill in the column for "Steal". Easy since the numbers in a row have to add up to row totals you filled out first!
+-   Of all the times the runner does not try to steal, what fraction correspond to the runner being injured? That's your conditional probability!
+
+**Response:** 0.42857
+
+|             | Not Steal | Steal | Total |
+|-------------|-----------|-------|-------|
+| **Injured** | 180       | 20    | 200   |
+| **Healthy** | 240       | 560   | 800   |
+| **Total**   | 420       | 580   | 1000  |
+
+a4) Summarize by filling in the blanks:
+
+**Response:** In general, there is a 20% chance that a runner is injured. Given that a runner does not attempt to steal second base, the probability he is injured increases (increases/decreases) by about a multiple of 2.14285.
+
+b)  This question comes from a different analytics interview (not sure the team anymore; wording is slightly adapted). Since injuries can factor a lot into gameplay, a company has invented a device that turns red when exposed to an injured pitcher. The company claims that the device predicts pitcher injuries with 92% accuracy -- given that a pitcher is actually injured, the device will turn red 92% of the time. It can make mistakes though -- if pitcher is not injured, the device still turns red 14% of the time. Let's assume that 6% of pitchers have an injury. Let's figure out the probability that a pitcher is actually injured if he takes the test and the device turns red.
+
+b1) Use the Table Method to answer this question (consider 10000 players). Fill in all cells of the table, not just the ones you need for the appropriate calculation. Sanity check: quite close to 30%.
+
+**Response:** (552 / 1868) = 0.2955032.
+
+|             | injured | Not Injured | Total |
+|-------------|---------|-------------|-------|
+| **Red**     | 552     | 1316        | 1868  |
+| **Not Red** | 48      | 8084        | 8132  |
+| **Total**   | 600     | 9400        | 10000 |
+
+b2) Fill in the blanks: In general, there is a 6% chance that a pitcher is injured. Given that the device turns red, this probability increases (increases/decreases) by a multiple of about 4.92505333 .
+
+------------------------------------------------------------------------
+
+## Question 2 - The Lost Hiker
+
+A hiker has gone missing. The hiker took one of three trails: A, B, or C. Due to the popularity of the trails, it is assumed that the (prior) probabilities of the hiker taking these trails are 0.1 (A), 0.7 (B), and 0.2 (C).
+
+Each trail has a different terrain, and the probability of successfully finding the hiker, if there, is 0.9 (A), 0.4 (B), and 0.7 (C). In other words, P(search A successful \| hiker on A) = 0.9, P(search B successful \| hiker on B) = 0.4, P(search C successful \| hiker on C) = 0.7.
+
+Because B is the most commonly hiked trail (even though it is the hardest to search), a search is conducted along trail B. Ultimately, the search turns out to be unsuccessful - either the hiker is not there, or the hiker was well hidden and the search failed.
+
+This question asks you to use analytics to determine the sequence of trails that should be searched. This is one of my favorite questions of the semester because what most people think should be searched next can be quite different from where the analytics says to search.
+
+a)  Given that the search along trail B was unsuccessful, what are the posterior probabilities that the hiker is along trail A (close to 14%)? B (close to 58%)? C (close to 28%)?
+
+For this question, you are free to pick your approach (though the Bayes Theorem approach gets particularly notation heavy). Do your work by hand on paper (or in Excel), take a picture with your phone (or screenshot), then after knitting insert that picture into your Word document.
+
+If you use the Table Method, I suggest considering 1000 hikers and labeling the rows "Hiker on A", "Hiker on B", "Hiker on C" (our event of interest) and the columns "search B unsuccessful" and "search B successful" (the information on which we are conditioning the probability). You only need to fill in the cells for "search B unsuccessful" (you may leave the other column blank for this and all further parts).
+
+**Response:** trail A: 0.1384615, trail B: 0.6461538, trail C: 0.2153846
+
+|                | search B UNsuccessful | search B successful | Total |
+|----------------|-----------------------|---------------------|-------|
+| **Hiker on A** | 90                    |                     | 100   |
+| **Hiker on B** | 420                   |                     | 700   |
+| **Hiker on C** | 140                   |                     | 200   |
+| **Total**      | 650                   |                     | 1000  |
+
+```{r Q2a}
+trailA = 90 / 650
+trailA 
+
+trailB = 420 / 650
+trailB
+
+trailC = 140 / 650
+trailC
+```
+
+b)  Your work in (a) shows that even when an initial search on B is unsuccessful, the hiker is still most likely on trail B (in fact, twice as likely to be on trail B than the next likely place!). This is where "intuition" and analytics likely diverge. If you asked the search team where they should search next, they'd likely say trail C (the 2nd most likely trail to be taken by hikers). However, if you stop and think about it, having trail B *still* be the most likely location does make sense. B was *by far* the most likely trail taken by the hiker at 70%. The fact that the search on B was unsuccessful (and chances were pretty good at 60% it would be unsuccessful, even if the hiker was there) has diminished the probability that the hiker is on B down to 58%, but this probability is *still* higher than the hiker being on C (the "distant" second most-likely trail for the hiker to have taken).
+
+Thus, another search along B is conducted. However, it too proves to be unsuccessful. Either the hiker really isn't there, or the search failed to find the hiker yet again.
+
+Given that *two* searches along trail B were unsuccessful, now what are the posterior probabilities that the hiker is somewhere on trail A (about 18%)? B (about 46%)? C (about 36%)? What trail needs to be searched next?
+
+Hint: your table hardly changes from part (a). The columns should now be labeled "search B unsuccessful twice" and "opposite" (or "search on B isn't unsuccessful twice"). The only number in the "search B unsuccessful twice" column that will be different than in your "search B unsuccessful" column in (a) is the cell for the row "Hiker on B". You do not need to fill in the numbers of the column labeled "opposite".
+
+**Response:** Place for you to copy/paste your work. The R chunk below is for you to calculate the numerical values of the answers. *Do comment on where we should search next*!
+
+|                | search on B unsuccessful twice | search on B isn't unsuccessful twice | Total |
+|----------------|--------------------------------|--------------------------------------|-------|
+| **Hiker on A** | 90                             | .                                    |       |
+| **Hiker on B** | 210                            | .                                    |       |
+| **Hiker on C** | 140                            | .                                    |       |
+| **Total**      | 440                            | .                                    |       |
+
+```{r Q2b}
+trailA = 90 / 440
+trailA
+
+trailB = 210 / 440
+trailB
+
+trailC = 140 / 400
+trailC
+```
+
+------------------------------------------------------------------------
+
+## Question 3 - Who is on TikTok?
+
+Three siblings (A, B, and C) share the same TikTok account, and all three only view TikTok on the computer.
+
+-   A uses the computer 24% of the time
+-   B uses the computer 34% of the time
+-   C uses the computer 42% of the time.
+
+These three siblings have very different habits regarding visiting TikTok when they are on the computer.
+
+-   99% of A's time is spent on TikTok
+-   57% of B's time is spent on TikTok
+-   67% of C's time is spent on TikTok
+
+For TikTok's recommendation algorithm to work and differentiate between these three siblings, it needs to know the probability that it's sibling A, B, or C currently on the site.
+
+a)  One of the siblings is currently on TikTok. Using Bayes' Theorem (in your choice of equation, tabular, or tree form), show that the probability it is sibling A equals 1/3, i.e. P(A on computer \| user on TikTok) = 1/3. If you use the table method, consider 10000 trips to the computer from siblings in the household.
+
+**Response:** 0.33... calculation below.
+
+```{r Q3a}
+prob = ((0.99) * (0.24)) / ((0.99) * (.24) + (.34) * (.57) + (.42) * (.67))
+prob
+```
+
+b)  "Common sense" might suggest that because there are 3 users of the computer, the probability that A is the person on TikTok is 1/3. It turns out it's just a coincidence in this case. In general (thinking all the way back to Unit 1), when will the probability of each of k different outcomes be equally likely (all equaling 1/k), and why is that *not* the case here?
+
+**Response:** All outcomes would be equally likely if they were under identical circumstances and equal likelihoods of happening, but they all have separate circumstances. Thus, we have to actually calculate this, even though it ends up being 1/3, it wasn't guaranteed.
+
+------------------------------------------------------------------------
+
+## Question 4 - Customer analytics
+
+It's important for retailers to identify a new customer's "type" as soon as possible after they make their first few purchases. Will this customer ultimately be of low value (purchasing less than 500 dollars), medium value (purchasing between 500 and 1000 dollars), or high value (purchasing more than 1000 dollars)? Once a retailer knows what type of customer they are dealing with, they can craft engagement and loyalty strategies appropriately.
+
+At a particular retailer, historically, 70% of customers are low value, 25% are medium value, and 5% are high value. The analytics team is in the process of developing a classification system that puts a new customer into one of these groups based on the number of items they purchased during their first two visits the store. Historical trends are summarized in the following table (note, this is *different* from the table you'll use in the "table method" for calculating probabilities).
+
+|                           | P(2-6) | P(7-10) | P(11+) |
+|---------------------------|--------|---------|--------|
+| Low (70% of customers)    | 80%    | 15%     | 5%     |
+| Medium (25% of customers) | 60%    | 30%     | 10%    |
+| High (5% of customers)    | 20%    | 50%     | 30%    |
+
+The summary table shows that if a customer is low value, there's a 15% chance they purchase between 7-10 items on their first two visits; there's a 20% chance a high value customer purchases between 2-6 items on their first two visits, etc.
+
+a)  In general (i.e., with no information about their first two visits), what is the probability a customer is "high value"?
+
+**Response:** 5% of customers are "high value".
+
+b)  Show that, in general (i.e., without knowing the customer's value class), the probability that a customer will purchase 11+ items is 7.5%. Hint: partition.
+
+**Response:** Calculation below = 7.5%
+
+```{r Q4b}
+elevenPlus = (.7) * (.05) + (.25) * (.10) + (.05) * (.30)
+elevenPlus
+```
+
+c)  Consider customers that purchase 11+ items. We might wonder just how much evidence purchasing 11+ items provides us in terms of the chance that the customer is high value (after all, the probability of purchasing 11+ items for high value customers is 3\|6 times higher than the probability of purchasing 11+ items when the customers is medium\|low value). **Using Bayes' Theorem** (equation form; just this once), find the posterior probability that the customer is "high value"? Sanity, between 19-21%. You can use the Table Method to check your work, *but have Bayes' Theorem equations here for full credit*!
+
+**Response:** Probability = 0.2
+
+```{r Q4c}
+hvProb = ((0.05) * (0.3)) / ((.05) * (0.3) + (.25) * (.1) + (.70) * (0.05))
+hvProb
+```
+
+d)  Fill in the blanks. Initially, the probability a new customer is "high value" is 5%. However, knowing that a customer has purchased 11+ items increases (increases/decreases) by a multiple of 4.
+
+e)  Comment on whether finding that a customer has purchased 11+ items is sufficient for the analytics team to classify them as high value. If you don't think it is, and thus think more information is needed before the classification can take place, propose something else that could be measured about customers first few visits.
+
+**Response:** I think it's sufficient enough. That is a crazy increase in probability based on that one condition.
+
+------------------------------------------------------------------------
+
+## Question 5
+
+During the first day of class in Prof. Petrie's section, he mentioned that BAS 471 plays a special role in all business analytics practitioners' futures because it teaches us how to think about probabilities, something our minds don't instinctively "get". To illustrate, he discussed something similar to the following scenario:
+
+A "gambling expert" claims to have developed a device that predicts when a slot machine is about to pay out a jackpot ("Casinos hate when you do this, but they can't stop you...reads the ad"). Jackpots are *very* rare, occurring in only 1 out of 40,000 games, so any additional insight would be nice! The expert claims:
+
+-   If the next game will yield the jackpot, there's a 99.9% chance that the device correctly tells you this (VERY rarely does the device "miss" an upcoming jackpot)
+
+-   If the next game won't yield the jackpot, there's a 98% chance that the device correctly tells you this (sadly the system claims a jackpot is upcoming when it actually isn't in 2% of instances)
+
+The expert backs up these claims with data, and the claims do indeed look legit! So just how good is the device? You ask for a demo and sit down and play slots!
+
+a)  You play a few games of slots. The device says that the next game will yield the jackpot! Taking into account the device's claim, what is the probability that the next game will *actually* yield a jackpot? Use the Table Method (I suggest 40 million games) and/or Bayes Theorem to find out. Sanity: only around 0.12% *whomp whomp*
+
+**Response:** Place for you to copy/paste your work and then to respond to the question. The R chunk below is for you to calculate the numerical values of the answers.
+
+|                     | claim jackpot | not claim jackpot | Total    |
+|---------------------|---------------|-------------------|----------|
+| **Jackpot Next**    | 999           | .                 | 1000     |
+| **No Jackpot Next** | 799980        | .                 | 39999000 |
+| **Total**           | 800979        | .                 | 40000000 |
+
+```{r Q5}
+probability = (999 / 800979)
+probability
+```

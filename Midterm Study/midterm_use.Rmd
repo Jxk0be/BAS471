@@ -1,0 +1,119 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code.
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*.
+
+```{r}
+load("BAS471HWUnit2BF22.RData")
+mean(AIRLINE$satisfaction=="satisfied")
+
+# -- aggregate() FUNCTION
+aggregate(satisfaction == "satisfied" ~ Gate.location,data=AIRLINE,FUN=mean)
+```
+
+```{r}
+# -- CONNECTING LETTERS REPORT
+# assuming since this is here, we use multcompLetters4() from the notes
+library(multcompView)
+
+# aggregate() function needed
+aggregate(satisfaction == "satisfied" ~ Age, data=AIRLINE, FUN=mean)
+
+# This is how I know how to use the multcompLetters4() function
+AOV <- aov(satisfaction == "satisfied" ~ Age, data=AIRLINE)
+TUKEY <- TukeyHSD(AOV)  
+multcompLetters4(AOV,TUKEY)
+```
+
+**Response:** Highest satisfaction rates: 41-60, Lowest satisfaction rates: 20 or younger.
+
+**Response:** There is no statistically significant difference in probability of satisfaction. This is because they share a letter "b" in the connecting letters report, which means we can't differentiate probabilities between these 2 groups.
+
+a)  Imagine design A was shown to 300 viewers, and 12 clicked (estimated 4% click-thru rate). Design B was shown to 400 other viewers, and 28 clicked (estimated 7% click-thru rate). Can the data discern a difference in the true click-thru rates of these designs? Is there any actionable insight here to help us choose between A and B? Quote a 95% confidence interval and justify your conclusion, making sure to include the phrase "statistically significant" in your discussion.
+
+**Response:** There is no actionable insight to help us choose between A and B. 0 is in the confidence interval [-0.066336783, 0.006336783] comparing the two probabilities, meaning this is not statistically significant.
+
+```{r Q3a}
+# -- 95% CONFIDENCE INTERVAL W/ prop.test()
+prop.test( c(12, 28), c(300, 400), conf.level = 0.95)
+```
+
+b)  Design C was shown to 5000 viewers and 200 clicked (estimated 4% click-thru rate). Design D was shown to 7000 other viewers, and 490 clicked (estimated 7% click-thru rate). Can the data discern a difference in the true click-thru rates of these designs? Is there any actionable insight here to help us choose between C and D? Quote a 95% confidence interval and justify your conclusion, making sure to include the phrase "statistically significant" in your discussion.
+
+```{r Q3b}
+# -- 95% CONFIDENCE INTERVAL W/ prop.test()
+prop.test( c(200, 490), c(5000, 7000), conf.level = 0.95)
+```
+
+**Response:** There is actionable insight to help us choose between A and B. Since 0 is not in the interval [-0.03824781, -0.02175219] we can say this IS statistically significant.
+
+-   A team manager planned to randomly assign numbers (from 5 up to and including 93 ) to be on the back of the team's baseball jerseys.  Unfortunately, he picked these numbers WITH replacement, so it's possible that two (or even more) jerseys end up with the same number.  If there are 29 people on the team, what's the probability that some number appears at least three times on the shirts (e.g. the number 13 could end up being on three or more jerseys)?  Develop your code so that it works for 10 trials, then obtain a final estimate of the probability with 100,000 trials.
+
+```{r}
+# sample(pool, selection, replace=T/F, prob=)
+nTrials = 100000
+counter = 0
+
+for (i in 1:nTrials) {
+  rand = sample(5:93, 29, TRUE);
+  
+  # This is getting the frequencies from the table into a vector
+  a = table(rand)
+  a = as.vector(a);
+  
+  # 3:29 %in% returns 1's for each 3 or more in the sample,
+  # If the sum of that vector is 1 or greater, then we have 3+
+  # repeats and we update the counter
+  if (sum(3:29 %in% a) >= 1) counter = counter + 1;
+}
+
+print(counter / nTrials)
+
+
+# https://stackoverflow.com/questions/27161975/how-to-access-values-in-a-frequency-table
+```
+
+A manufacturing process for an engine requires two stages:
+
+Stage 1 requires between 2 and 16 seconds (inclusive, all integer amounts; thus 15 possible values).  Here, the probability of a 2 is five times more likely than the probability of a 16 , and the probability decreases linearly from 2 to 16 .  Stage 2 requires either 10 seconds (35% chance) or 19 seconds (65% chance)
+
+Estimate the probability that the total processing time (wait time at both stages) is AT LEAST 28 seconds.  Develop your code so that it works for 10 trials, then obtain a final estimate of the probability with 100,000 trials.
+
+```{r}
+nTrials = 100000
+counter = 0
+
+for (i in 1:nTrials) {
+  stage1 = sample(2:16, 1, FALSE, seq(from=5, to=1, length=length(2:16)))
+  stage2 = sample(c(10, 19), 1, FALSE, c(.35, .65))
+  totTime = stage1 + stage2
+  if (totTime >= 28) counter = counter + 1
+}
+
+print(counter / nTrials)
+
+```
+
+A small boutique carries 75 different items. Imagine the demand for each item is independent of each other, and well-modeled by a Poisson distribution with lambda= 0.4 . The command rpois(75,0.4) will generate an example vector containing these 75 demands. Estimate the probability that AT MOST 49 of these items will have NO DEMAND. In other words, that there are AT MOST 49 0s in the demand vector. Develop your code so that it works for 10 trials, then obtain a final estimate of the probability with 100,000 trials.
+
+```{r}
+nTrials = 100000
+counter = 0
+
+for (i in 1:nTrials) {
+  # given to us
+  demands = rpois(75, 0.4)
+  
+  # sums all the times we see a 0 in demands vector
+  noDemand = sum(demands == 0)
+  
+  # if we see it less than or equal to 49 times, we increment
+  if (noDemand <= 49) counter = counter + 1
+}
+
+print(counter / nTrials)
+```

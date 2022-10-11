@@ -1,0 +1,325 @@
+---
+title: 'BAS 471 Fall 2022 Homework on Unit 2B - Precision of Estimates for p and Comparing Probabilities Between Groups'
+author: "Jake Shoffner"
+date: "see Canvas for due date"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+#Leave this as-is.
+knitr::opts_chunk$set(echo = TRUE,collapse=TRUE)
+if( as.numeric( paste( unlist( strsplit( paste(R.Version()$major,R.Version()$minor,sep="."),split="\\.") ),collapse="") ) < 421 ) { 
+  stop("You must have R version 4.2.1 or later to knit this document")}
+RNGversion("4.2.1")
+library(multcompView)
+```
+
+------------------------------------------------------------------------
+
+# Note: these are your homework problems
+
+Reminder about collaboration policy. You can develop a common set of R code with you and your friends. However, anything that is written interpretation, i.e., anything that follows a **Response:** needs to be written up in your own words. Homeworks that look to be near copy/pastes of each other will receive substantially reduced credit.
+
+------------------------------------------------------------------------
+
+## Question 1
+
+Note: this problem has a substantial amount of background, but the actual work is minimal (the Monte Carlo simulation is provided, and you'll use its output to estimate a probability, to quantify its standard error, and to make a 95% confidence interval). If you like modeling the stock market, this problem is for you!
+
+**Background**
+
+You believe the following model provides a reasonable reflection of how stock prices change in reality:
+
+-   A stock's closing price today will be some percentage of its previous trading day's closing price.
+-   The only possible percentage changes are -5%, -2.5, -1%, 0%, 1%, 2%, 4%, or 6%
+-   These eight changes are equally likely.
+
+Currently, a stock's price is 100. You have the option to "bet" that the closing price will be 130 or above after 20 trading days. You want to use your model to estimate the probability of winning this bet.
+
+It turns out that it only takes a few lines of code to program the model:
+
+-   If the previous price was 100, and the percent change is -0.01, then the new price is `100*(1-0.01) = 99`
+-   If the previous price was 110, and the percentage change is 0.04, then the new price is `110*(1+0.04) = 114.4`
+-   If the previous price was 85, and the sequence of percentage changes was -0.025, 0, 0.01, 0, -0.05, then the new price after these 5 days is `85*(1-0.025)*(1+0)*(1+0.01)*(1+0)*(1-0.05) = 79.52` (rounding to the nearest cent)
+-   If `changes` is a vector containing 20 randomly picked percentage changes and `initial` is the starting price, then `initial*prod(1+changes)` gives the final price, where `prod` is a function that takes the product of all elements in a vector (like how `sum` takes the sum of all elements in a vector).
+
+```{r Q1 background examples}
+initial <- 100
+set.seed(2022); changes <- sample( c(-.05,-.025,-.01,0,.01,.02,.04,.06), size=20, replace= TRUE)
+changes
+final <- initial*prod(1+changes)
+final  #Closed at 130 or above; win the bet!
+set.seed(1975); changes <- sample( c(-.05,-.025,-.01,0,.01,.02,.04,.06), size=20, replace= TRUE)
+changes
+final <- initial*prod(1+changes)
+final  #Did not close at 130 or above; lose the bet!
+```
+
+To estimate the probability of you winning the bet (the closing price of the stock ist at least 130 after 20 days), you write the following Monte Carlo simulation. Your strategy is to store the closing price after the 20th day in a vector named `final`.
+
+```{r Q1 simulation}
+initial <- 100
+final <- c()
+set.seed(471); for (trial in 1:1000) { 
+  changes <- sample( c(-.05,-.025,-.01,0,.01,.02,.04,.06), size=20, replace= TRUE)
+  final[trial] <- initial*prod(1+changes)
+}
+hist(final)
+```
+
+**Problem**
+
+Use the results of the provided Monte Carlo simulation (i.e., the values stored in `final`).
+
+a)  Estimate the probability that the closing price after 20 days is at least 130 (just under 12%)
+b)  Provide a guess of how "wrong" this guess is, i.e. how far do we think the estimated probability is from the true probability (about 1%)?
+c)  Provide a range of plausible values for the true probability that are plausible/reasonable/consistent with the simulation.
+d)  Imagine you are willing to take this bet only if the probability of winning is 10%. Based on the simulation, is 10% a plausible value for the true probability of winning? Explain.
+
+**Response:** Yes, 10% is a plausible value for the true probability of winning. It is contained in the 95% confidence interval.
+
+```{r Q1 problem}
+# a: about 11.9%
+pHat = mean(final >= 130)
+print(pHat)
+
+# b: about 1.02% wrong
+SE = sqrt((pHat * (1 - pHat)) / 1000)
+print(SE)
+
+# c: range of plausible values for the true probability [0.09957649, 0.14069752]
+binom.test(sum(final >= 130), length(final), conf.level=0.95)$conf.int
+```
+
+------------------------------------------------------------------------
+
+## Question 2
+
+Imagine that the City of Knoxville wants to try out a new set of timings for stoplights on Cumberland Avenue between Henley Street and Alcoa Highway (i.e., the strip). The goal is to make traffic flow more efficiently along both Cumberland and its cross streets. It's best to study proposed changes of light timings via a Monte Carlo simulation because of the potential to *really* clog up traffic if the proposed change is bad.
+
+Consider the event: "the daily average travel time along Cumberland Avenue is at least 10 minutes". The City of Knoxville would prefer the probability of this event to be 25% (i.e. there's a 25% chance that the daily average travel time along Cumberland for the day is 10 minutes or greater). You and your fellow analytics team set up a detailed simulation that accurately mimics the random arrival times of cars onto Cumberland and its cross streets as well as the travel between lights. You are asked to run the simulation for as long as you can and get back to them by the end of the day.
+
+However, due to the detailed nature of the simulation, it's quite slow to run! You end up only having the time to simulate 144 days (*whomp whomp*). In 30 of them, the daily average travel time was 10 minutes or greater. Thus, the "best guess" for p is about 30/144= 20.83%. The estimate has a standard error of about 3.38%. A 95% confidence interval for the true probability is (14.5%, 28.4%):
+
+```{r Q2overview}
+phat <- 30/144; phat
+SE <- sqrt( phat*(1-phat)/144 ); SE
+phat + 2*c(-1,1)*SE  #Classic confidence interval
+binom.test(30,144)   #Better confidence interval
+```
+
+a)  Analysts use two terms to help quantify the precision of an estimated probability: standard error and margin of error. How are these two quantities related? Find the margin of error for the estimated probability of 20.83%.
+
+**Response:** Standard error is the guess of how "wrong" the estimated probability is from the true probability, while the margin of error is just double the standard error. Margin of error = 0.06933125. Got this by doing (upper bound - lower bound) / 2.
+
+b)  Is the confidence interval quoted above "correct"? In other words, does it cover `p`, the *true* probability that the daily average travel time is at least 10 minutes? Justify your answer.
+
+**Response:** There is a 95% chance the interval covers the true value of p. We can never truly know if the confidence interval truly covers the value of the true probability.
+
+c)  Imagine we "outsourced" the simulation and got each student in BAS 320 (who just finished their unit on `for` loops; 260 total students) to run it on their own laptops (using different random number seeds). If everyone came up with a 95% confidence interval based on their simulation, how many of these 260 confidence intervals would you *expect* to cover the true probability `p`? How could you identify which ones cover the true value of `p` and which ones do not?
+
+**Response:** Since we never truly know which confidence intervals contain the true probability of p, it is hard to tell. But you can expect around 95% of the 260 to contain them (247), but that is not guaranteed. You cannot identify which ones cover the true value of p and which ones do not.
+
+d)  One of the BAS 320 students ends up finding a 95% confidence interval of the form (0.21, 0.27). Thus, this student is 95% confident that the true value of `p` is between 21% and 27%
+
+-   What's wrong with saying "There's a 95% chance that `p` is between 21% and 27%"?
+
+**Response:** A confidence interval doesn't represent the chance that the true value of p is within the interval, it represents the confidence you have in the true probability being within that interval.
+
+-   The term "95% confident" does indeed refer to *something* that has a 95% chance of occurring. What?
+
+**Response:** 95% confidence that your interval contains the true probability.
+
+e)  The boss asks you to run a new Monte Carlo simulation with a different set of light timings to estimate the probability that the daily average travel time is at least 10 minutes. The boss wants the margin of error of the estimate to be 0.02, i.e. 2 percentage points. How many trials of the Monte Carlo simulation would need to be run if:
+
+-   you had no idea what the true probability might be?
+-   you conducted a small test run of simulations and think the probability will be near 0.21?
+
+```{r Q2e}
+ME = 0.02
+p = 0.5
+pilotP = 0.21
+
+# Trials of Monte Carlo would need to be ran if we had no idea what true prob. might be
+n = (4 * p * (1 - p)) / ((ME) ^ 2)
+print(n)
+
+# Trials of Monte Carlo would need to be ran if conducted a small test run w/ prob. near 0.21
+n2 = (4 * pilotP * (1 - pilotP)) / ((ME) ^ 2)
+print(n2)
+```
+
+f)  The boss asks you to perform another Monte Carlo simulation with *yet another* set of light timings. After 300 trials, you estimate the probability that the daily average travel time is at least 10 minutes, then find your estimate has a margin of error of 0.051. The boss wants more precision, and instructs you to run more trials so that margin of error is 0.006375 (1/8th its current size; in other words the boss wants to decrease the margin of error by a factor of 8). How many total trials would be needed in all?
+
+**Response:** 19200 trials would be needed to get the margin of error down by a factor of 8. (8 \^2 \* 300).
+
+------------------------------------------------------------------------
+
+## Question 3
+
+Veritasium is a YouTuber with almost 12.8 million subscribers. He produces extremely high-quality content related to cool and puzzling math and science matters. For example, in a video named "How Hidden Technology Transformed Bowling" (<https://www.youtube.com/watch?v=aFPJf-wKTd0>), he discusses how to estimate the probability of getting a strike by rolling a bowling ball with a certain velocity and spin. You need to program a robot to do this, since people can't ensure their trials are conducted under identical conditions!
+
+In a video released mid-August 2021 entitled "Clickbait is Unreasonably Effective" (<https://www.youtube.com/watch?v=S2xHZPH5Sng>), he discusses how he uses analytics to determine the best thumbnail and best title to give to a video in order to maximize the probability someone clicks on and watches the video (its click-thru rate).
+
+People making a living through YouTube know that thumbnails/titles matter. People seeing a thumbnail are much more likely to click when it has a catchy title like "The Simplest Math Problem No One Can Solve" (<https://www.youtube.com/watch?v=094y1Z2wpJg>) rather than "The Collatz Conjecture". And they are more likely to click a thumbnail with an exciting or mysterious picture (especially with a red circle or arrow) than some random frame from the video itself.
+
+The process of determining optimal design (in YouTube thumbnails, online and retail ads, etc.) through experimentation is known as A/B testing, and it is a staple in business analytics! Which design (A or B) has the higher click-thru rate? When Veritasium (and many other YouTubers) releases a video, he engages in rapid A/B testing to compare many different designs and determines the best. The tools learned in BAS 471 for comparing two proportions allow us to determine the answer!
+
+a)  Imagine design A was shown to 300 viewers, and 12 clicked (estimated 4% click-thru rate). Design B was shown to 400 other viewers, and 28 clicked (estimated 7% click-thru rate). Can the data discern a difference in the true click-thru rates of these designs? Is there any actionable insight here to help us choose between A and B? Quote a 95% confidence interval and justify your conclusion, making sure to include the phrase "statistically significant" in your discussion.
+
+**Response:** There is no actionable insight to help us choose between A and B. 0 is in the confidence interval [-0.066336783, 0.006336783] comparing the two probabilities, meaning this is not statistically significant.
+
+```{r Q3a}
+prop.test( c(12, 28), c(300, 400), conf.level = 0.95)
+```
+
+b)  Design C was shown to 5000 viewers and 200 clicked (estimated 4% click-thru rate). Design D was shown to 7000 other viewers, and 490 clicked (estimated 7% click-thru rate). Can the data discern a difference in the true click-thru rates of these designs? Is there any actionable insight here to help us choose between C and D? Quote a 95% confidence interval and justify your conclusion, making sure to include the phrase "statistically significant" in your discussion.
+
+```{r Q3b}
+prop.test( c(200, 490), c(5000, 7000), conf.level = 0.95)
+```
+
+**Response:** There is actionable insight to help us choose between A and B. Since 0 is not in the interval [-0.03824781, -0.02175219] we can say this IS statistically significant.
+
+c)  You'll notice that the differences in estimated click-thru rates (B vs. A; D vs. C) are both 3%. Yet, you found that one difference in click-thru rates was statistically significant while the other was not. Explain why sometimes a difference in estimated probabilities of 3% is statistically significant while sometimes it isn't.
+
+**Response:** This all deals with 0 being in the confidence interval. If 0 is in the interval, we outright know that there is a possibility the difference between the probabilities could be 0. With the other confidence interval, we aren't outright saying the difference of 0 is impossible, we are just saying we are 95% confident it is not in the interval. That is why one is statistically significant, and the other one is not.
+
+------------------------------------------------------------------------
+
+## Question 4
+
+Although people's choices in airlines are limited, airlines do try to leave customers satisfied so that they will fly again with them. Analytics teams that work for airlines often study what "drives" customer satisfaction: on time departures? comfortable seats? cleanliness?
+
+In the global environment (after loading in `BAS471HWUnit2BF22.RData`), there is a dataframe named `AIRLINE` that records the satisfaction of 3000 customers after they took a flight. Looking at the values in the `AIRLINE$satisfaction` column, we see that overall there is about a 90% satisfaction rate overall (good news). Are there any patterns to what types of customers are satisfied? Information such as gender, age, type of travel, class of travel, flight distance, gate location, seat comfort, delay information, etc., is provided.
+
+*Note* so that this .Rmd will knit:
+
+-   Make sure `BAS471HWUnit2BF22.RData` is in your BAS 471 folder
+-   Make sure your working directory is your BAS 471 folder (Session, Set Working Directory if you need to)
+-   You have done a Save As to force save this .Rmd file into your BAS 471 folder
+
+```{r Q4}
+load("BAS471HWUnit2BF22.RData")
+mean(AIRLINE$satisfaction=="satisfied") #Overall satisfaction rate
+```
+
+a)  If you look at the satisfaction rates of new vs. repeat customers (`Customer.Type` column), you find that `New` customers have about a 79.3% chance of being satisfied while `Repeat` customers have a 91.8% chance of being satisfied. Show that this 12.5% difference in satisfaction rates is indeed statistically significant. Note: the `satisfaction` column records whether a customer is satisfied. Be sure to quote a 95% confidence interval for the true difference in satisfaction rates to help justify your conclusion.
+
+**Response:** This difference in satisfaction rates is statistically significant, there is no 0 in the interval [0.09101628, 0.158659]. Therefore, we know there is actionable insight within this difference.
+
+```{r Q4a}
+AOV <- aov(satisfaction == "satisfied" ~ Customer.Type, data=AIRLINE)
+TUKEY <- TukeyHSD(AOV)  
+TUKEY
+```
+
+b)  Produce a table of the satisfaction rates for each value of `Gate.location` (which contains information on how happy someone was with the gate location when departing) using an `aggregate` function. You'll see some differences is satisfaction rates, ranging from about 88.7% to 92.1%. However, explain (performing an ANOVA, but without producing a connecting letters report) how you know that these differences are *not* statistically significant.
+
+**Response:** I don't remember this in the notes, but I'll say that these differences are not statistically significant because they are very close in satisfied probabilities? Hard to tell without a connecting letters report.
+
+```{r Q4b}
+aggregate(satisfaction == "satisfied" ~ Gate.location, data=AIRLINE,FUN=mean)
+```
+
+c)  Produce a table of the satisfaction rates for the five levels of `Age`. Use an `aggregate` function. Produce a connecting letters report, then very briefly summarize the results (what age(s) have the highest and which have the lowest satisfaction rates).
+
+**Response**:Highest satisfaction rates: 41-60, Lowest satisfaction rates: 20 or younger.
+
+```{r Q4c}
+# assuming since this is here, we use multcompLetters4() from the notes
+library(multcompView)
+
+# aggregate() function needed
+aggregate(satisfaction == "satisfied" ~ Age, data=AIRLINE, FUN=mean)
+
+# This is how I know how to use the multcompLetters4() function
+AOV <- aov(satisfaction == "satisfied" ~ Age, data=AIRLINE)
+TUKEY <- TukeyHSD(AOV)  
+multcompLetters4(AOV,TUKEY)
+```
+
+d)  Produce a table of the satisfaction rates for each of the five levels of `Flight.Distance` using an `aggregate` function. Also, product a connecting letters report comparing the levels.
+
+-   From a statistical point of view, which distance has the highest satisfaction rate, or is there a "tie"? Explain. If there is a tie, list all flight distances tied for the highest probability of satisfaction. Explain your reasoning.
+
+**Response:** 2001 miles or more has the highest satisfaction rate. There is no tie in highest satisfaction rate since no other categories have "a" like 2001 miles or more.
+
+-   From a statistical point of view, which distance has the lowest satisfaction rate, or is there a "tie"? Explain. If there is a tie, list all flight distances tied for the lowest probability of satisfaction.
+
+**Response:** There is a "tie", 801 to 1200 miles shares a letter with 401 to 800 miles and 400 or fewer miles.
+
+-   Is there any statistically significant difference in the probability of satisfaction between flight distances of 1201 to 2000 miles (91.06%) and flight distances of 401 to 800 miles (86.64%)? Explain.
+
+**Response:** There is no statistically significant difference in probability of satisfaction between 1201 to 2000 and 401 to 800 miles. This is because they share a letter "b" in the connecting letters report, which means we can differentiate probabilities between these 2 groups.
+
+```{r Q4d}
+library(multcompView)
+
+aggregate(satisfaction == "satisfied" ~ Flight.Distance, data=AIRLINE, FUN=mean)
+
+AOV <- aov(satisfaction == "satisfied" ~ Flight.Distance, data=AIRLINE)
+TUKEY <- TukeyHSD(AOV)  
+multcompLetters4(AOV,TUKEY)
+```
+
+------------------------------------------------------------------------
+
+## Extra credit
+
+In March 2020, when Covid was in its infancy, Prof Petrie wrote a Shiny app to explore how COVID-19 may spread through a long-term care facility given a particular social network among the residents.
+
+<https://oddsmaker.shinyapps.io/COV19/>
+
+People become infected, are contagious for one day (before quarantining in their room), and have the opportunity to infect anyone to whom they are connected in the network. The goal of this simulation was to explore how two possible policy decisions may affect the spread of the virus.
+
+-   Enforcing social distancing. Instead of residents interacting with 8+ others, what if they interacted with fewer?
+
+-   Enforcing hygiene measures. Instead of the probability of transmission upon contact being 12%, what if it was smaller?
+
+The facility figured that it should be able to handle 25% of residents eventually becoming infected. If the facility had 80 beds, which of those two strategies gives the best (smallest) probability that at most 20 of the 80 residents become infected?
+
+You could open up the Shiny app and play around with it to see which option looks the best, or you could run a more automated Monte Carlo simulation and come up with a more formal comparison of the probabilities under these two policies.
+
+In the global environment (after loading in `BAS471HWUnit2BF22.RData`), there is a function named `covidspread`. The arguments are:
+
+-   `population` (default 100) - number of people in the facility; you'll be using 80 in this simulation
+-   `interactions` (default 8) - the minimum number of interactions each person has with others in the facility
+-   `transmit` (default 0.2) - the probability of COVID-19 transmission upon interaction with an infected individual
+-   `initial` (default 1) - the number of people in the facility infected on day 1
+-   `seed1` and `seed2` (optional) - integers that set the random number seed and influence the form of the social network and the propagation of the virus
+-   `do.plot` (default TRUE) - if TRUE, it will plot the social network and who got infected; if FALSE, it won't
+
+The function returns the number of people who eventually become infected under the assumptions in this spread model. For example, the following chunk will run a trial with 80 residents, (at least) 8 interactions per resident, and a transmission probability of 0.12. We see that most (71) of the 80 residents become infected. You can rerun this command a few times without the `seed1` and `seed2` arguments to see the variation in outcomes (don't have that knitted into this document though).
+
+```{r Qextra credit,include=FALSE}
+infected <- covidspread(population=80,interactions=8,transmit=0.12,initial=1,seed1=471,seed2=1111,do.plot=TRUE)
+infected
+covidspread(population=80,interactions=8,transmit=0.12,initial=1,do.plot=TRUE)
+```
+
+a)  Using `population=80`, `interactions=8`, `transmit=0.12`, and `initial=1`, estimate the probability that at most 20 of the 80 residents become infected. Use 300 trials. Hint: use a `for` loop to run `covidspread` (omitting both the `seed1` and `seed2` arguments and having `do.plot=FALSE`) a total of 300 times, storing the number of people that do get infected in a vector called `infected0`. Take the `mean` of the appropriate logical condition (I was getting between 25-35% or so). Also produce a 95% confidence interval for this probability using `binom.test`. Note: this simulation is pretty computationally intensive and may take a couple of minutes to complete (which mean knitting will also take a while)
+
+```{r Qextra credit a}
+
+```
+
+b)  Re-run this Monte Carlo simulation for a social distancing policy (`interactions=6`,`transmit=0.12`), storing the number of people that get infected in a vector named `infected1`. What's the estimated probability that at most 20 people get infected? Provide a 95% confidence interval with `binom.test` (I was getting around 68-74%). Again, this simulation may take a couple minutes.
+
+```{r Q extra creditb}
+
+```
+
+c)  Re-run this Monte Carlo simulation again for a hygiene policy (`interactions=8`,`transmit=0.08`), storing the number of people that get infected in a vector named `infected2`. What's the estimated probability that at most 20 people get infected? Provide a 95% confidence interval with `binom.test` (I was getting around 77-82%). Again, this simulation may take a couple minutes.
+
+```{r Q extra creditc}
+
+```
+
+d)  Use a 95% confidence interval from `prop.test` to determine whether the data can discern a difference in the probabilities that at most 20 people at the facility will become infected under these two policies, then make a judgment call (if possible) as to which policy the facility should implement.
+
+**Response:**
+
+```{r Qextra creditd}
+
+```
