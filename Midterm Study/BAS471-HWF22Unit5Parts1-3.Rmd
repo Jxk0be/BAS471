@@ -344,7 +344,7 @@ dpois(2, 0.9)
 
 #Average number of purchases
 # this answer would be 0 because someone can't make a decimal number of purchases.
-0
+
 
 #4 or more purchases
 1 - ppois(3, 0.9)
@@ -366,13 +366,14 @@ b.  Most (but not all) delivery attempts by the food-delivering robots
 
 ```{r Q5b}
 #Exactly 60
-dbinom(60, 60, 0.88)
 
+
+1 - pbinom(22, 25, 0.8)
 #Between 48-56 inclusive
-sum(dbinom(48:56, 60, 0.88))
+
 
 #50 or fewer
-pbinom(50, 60, 0.88)
+1-ppois(4,4.3)
 ```
 
 c.  You are asked to give out flyers about the Sports Analytics Club to

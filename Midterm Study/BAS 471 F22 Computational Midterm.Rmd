@@ -1,0 +1,161 @@
+---
+title: "BAS471 F22 Computational Midterm"
+Name: "Jake Shoffner"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1 - Sour Skittles
+
+Sour Skittles is one of my favorite types of candy, but they have been particularly difficult to find in more recent years. When I have been able to find them, they have usually been at a gas station in the typical 1.8 oz pack. While I don't know exactly how many skittles come in a pack that size, let's assume the target number of candies is equally likely to be any integer between 40 and 50, inclusively.
+
+In a pack of Sour Skittles, there are 5 colors - yellow, orange, green, red, and purple. When each of the 1.8 oz packs are filled, the colors are put into the bag with yellow being 5x more like than purple, red being 4x more likely than purple, orange being 3x more likely than purple, and green being 2x more likely purple.
+
+Using 100,000 trials, write a Monte Carlo simulation to estimate the probability that I get a 1.8 oz pack of Sour Skittles that contains 20 or more reds, which is my favorite flavor in the pack. Store this value in a variable called prob_red.
+
+```{r}
+nTrials = 100000
+counter = 0
+
+# Not gonna lie, the run-time on this is atrocious
+for (i in 1:nTrials) {
+  bag = c()
+  skittles = sample(40:50, 1, FALSE)
+  
+  # this decides the amount of skittles in bag
+  for (j in 1:skittles) {
+      # 2 represents red
+      color = sample(1:5, 1, FALSE, seq(from=5, to=1, length=length(1:5)))
+      bag = c(bag, color)
+  }
+  
+  # sees how many reds are in bag
+  redInBag = sum(bag %in% 2)
+  if (redInBag >= 20) counter = counter + 1
+}
+
+prob_red = counter / nTrials
+
+print(prob_red)
+```
+
+## Question 2 - Lottery Numbers
+
+A lottery requires players to select five unique numbers between 1 and 99 (inclusively) when they buy their tickets. If their numbers match at least three of the five winning numbers, then they will receive a cash reward. The person over the lottery will randomly select five unique numbers between 1 and 99 (inclusively) to determine what the five winning numbers will be.
+
+Using 100,000 trials, write a Monte Carlo simulation to estimate the probability of a lottery player receiving a cash prize. Store this value in a variable called prob_win.
+
+```{r}
+nTrials = 100000
+counter = 0
+
+for (i in 1:nTrials) {
+  unNumbers = sample(1:99, 5, FALSE)
+  winNumbers = sample(1:99, 5, FALSE)
+  
+  numMatches = sum(unNumbers %in% winNumbers)
+  if (numMatches >= 3) counter = counter + 1
+}
+
+prob_win = counter / nTrials
+
+# just for testing
+print(prob_win)
+```
+
+## Question 3 - Co-working Space
+
+Co-working spaces are becoming especially popular with the rise in remote work. Work Sync is one particular co-working company that has a location in a booming downtown area. They have adopted a new model for the way they rent out their spaces that challenges the way it is traditionally done.
+
+Many co-working spaces will ensure that only one person is occupying a particular working space in their facility and they will pay to rent that space by the month. Work Sync has adopted a new model wherein they have a total of 92 work spaces and a membership of 140 customers that pay to access their facility on a monthly basis. This model assumes that a maximum of 92 of their 140 customers will show up on any given day (i.e., no one shows up to find that all the spaces have been occupied).
+
+Assume that once someone shows up, they occupy the working space for the entire day. The number of people that show up each day could be as low as zero or as high as 140, the total number of members they have. Given that the probability of a member showing up on any given day is 0.57, use 100,000 trials to write a Monte Carlo simulation to estimate the probability of more members showing up than there are spaces. Store this value in a variable called prob_no_space.
+
+```{r}
+nTrials = 100000
+counter = 0
+
+for (i in 1:nTrials) {
+  # returns a vector of people showing up/not showing up
+  individual = sample(c(0, 1), 140, TRUE, c(1-0.57, 0.57))
+  
+  # sums the people actually showing up that day
+  showUp = sum(individual)
+  
+  # if the # showing up is more than 92 (work spaces), increment
+  if (showUp > 92) counter = counter + 1
+}
+
+prob_no_space = counter / nTrials
+print(prob_no_space)
+```
+
+## Question 4 - aggregate()
+
+Download the dataset called G11 from the Computational Midterm Canvas Quiz and import it into R.
+
+The first column is named Demand and contains our event of interest - a tech company having strong demand.
+
+Use the aggregate() function to find the probability that a tech company has the value Strong for each level of Season.
+
+Store the result in a variable called Q4 the NAME OF THE LEVEL that has the lowest overall probability. For example, if the name of this level was orange, you'd do Q4 = 'Orannge', with the single quotes. Note that it is the LEVEL, NOT the probability, that's being asked for here, so your response needs to be a word in quotes.
+
+```{r}
+load("G11.RData")
+
+# -- aggregate() FUNCTION
+aggregate(Demand == "Strong" ~ Season,data=G11,FUN=mean)
+Q4 = 'Summer'
+```
+
+## Question 5 - Connecting Letters
+
+Download the dataset called T12 from the Computational Midterm Canvas Quiz and import it into R.
+
+The first column is named Status and contains our event of interest - a customer who makes a purchase.
+
+Produce a connecting letters report that allows us to find statistically significant differences in the probability that a customer has the value Purchase between levels of Section.
+
+Store the result into a variable called Q5 the letter(s) that you see under the Household Goods level. For example, if it had the letters bc, you'd do Q5 = 'bc', with the single quotes. Make sure you have the multcompView package in R so your code works.
+
+```{r}
+library(multcompView)
+load("T12.RData")
+
+AOV <- aov(Status == "Purchase" ~ Section, data=T12)
+TUKEY <- TukeyHSD(AOV)  
+multcompLetters4(AOV,TUKEY)
+
+Q5 = 'ab'
+```
+
+## Question 6 - prop.test()
+
+Download the dataset called K13 from the Computational Midterm Canvas Quiz and import it into R.
+
+The first column is named Status and contains our event of interest - a student being accepted to a program. The second column is named Education and contains the two group identities, Undergraduate Student and Graduate Student.
+
+Use the prop.test() function to produce a 95% confidence interval for the difference in probabilities of the event of interest between these two groups. Note: setup prop.test() so that it's calculating the difference, Graduate - Undergraduate.
+
+Store into a variable called Q6 the UPPER LIMIT of this confidence interval.
+
+```{r}
+load("K13.Rdata")
+
+undergrad = sum(K13$Status == "Accepted" & K13$Education == "Undergraduate Student")
+
+grad = sum(K13$Status == "Accepted" & K13$Education == "Graduate Student")
+
+gradTotal = sum(K13$Education == "Graduate Student")
+underTotal = sum(K13$Education == "Undergraduate Student")
+
+# -- 95% CONFIDENCE INTERVAL W/ prop.test()
+prop.test( c(grad, undergrad), c(gradTotal, underTotal), conf.level = 0.95)
+
+Q6 = 0.03612250
+```
+
+CONGRATULATIONS! You have completed the computational midterm!
